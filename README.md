@@ -1,6 +1,6 @@
-# rubyclassnavigate README
+# rubynavigate README
 
-This is the README for your extension "rubyclassnavigate". After writing up a brief description, we recommend including the following sections.
+This is the README for your extension "rubynavigate". After writing up a brief description, we recommend including the following sections.
 
 ## Features
 
