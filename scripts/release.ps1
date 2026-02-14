@@ -6,13 +6,32 @@ $packageJson = Get-Content -Path "package.json" -Raw | ConvertFrom-Json
 $version = $packageJson.version
 $tag = "v$version"
 
-Write-Host "Creating tag $tag based on package.json version..." -ForegroundColor Green
+Write-Host "Preparing to release version $version (tag: $tag)..." -ForegroundColor Green
+
+# Check if tag already exists locally
 if (git tag -l "$tag" | Where-Object { $_ }) {
-	Write-Host "Tag $tag already exists. Aborting release." -ForegroundColor Red
-	exit 1
+    Write-Host "Tag $tag already exists locally." -ForegroundColor Yellow
+    $response = Read-Host "Do you want to delete and recreate it? (y/N)"
+    
+    if ($response -ne 'y' -and $response -ne 'Y') {
+        Write-Host "Release aborted." -ForegroundColor Red
+        exit 1
+    }
+    
+    # Delete local tag
+    Write-Host "Deleting local tag $tag..." -ForegroundColor Cyan
+    git tag -d $tag
+    
+    # Try to delete remote tag (may fail if it doesn't exist remotely, which is fine)
+    Write-Host "Deleting remote tag $tag..." -ForegroundColor Cyan
+    git push origin --delete $tag 2>$null
 }
+
+# Create the tag
+Write-Host "Creating tag $tag..." -ForegroundColor Green
 git tag $tag
 
+# Push the tag
 Write-Host "Pushing tag to remote..." -ForegroundColor Cyan
 git push origin $tag
 
