@@ -1,15 +1,32 @@
 import * as assert from 'assert';
 
-// You can import and use all API from the 'vscode' module
-// as well as import your extension to test it
-import * as vscode from 'vscode';
-// import * as myExtension from '../../extension';
+import { matchesRubySymbol, parseRubySymbolsFromText } from '../../rubyParser';
 
-suite('Extension Test Suite', () => {
-	vscode.window.showInformationMessage('Start all tests.');
+suite('Ruby symbol detection', () => {
+	test('Finds simple class and matches filter terms', () => {
+		const text = ['class Foo', 'end', ''].join('\n');
+		const names = parseRubySymbolsFromText(text).map(symbol => symbol.name);
+		assert.ok(names.includes('Foo'));
 
-	test('Sample test', () => {
-		assert.strictEqual(-1, [1, 2, 3].indexOf(5));
-		assert.strictEqual(-1, [1, 2, 3].indexOf(0));
+		assert.strictEqual(matchesRubySymbol('Foo', 'Foo'), true);
+		assert.strictEqual(matchesRubySymbol('Foo', 'Fo'), true);
+		assert.strictEqual(matchesRubySymbol('Foo', 'F'), true);
+		assert.strictEqual(matchesRubySymbol('Foo', 'Fpp'), false);
+	});
+
+	test('Finds nested classes in a module', () => {
+		const text = [
+			'module Foo',
+			'  class Bar',
+			'  end',
+			'',
+			'  class Par',
+			'  end',
+			'end',
+			''
+		].join('\n');
+		const names = parseRubySymbolsFromText(text).map(symbol => symbol.name);
+		assert.ok(names.includes('Foo::Bar'));
+		assert.ok(names.includes('Foo::Par'));
 	});
 });
