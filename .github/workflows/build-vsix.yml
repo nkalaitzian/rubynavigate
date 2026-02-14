@@ -5,10 +5,17 @@ on:
     branches:
       - main
   pull_request:
+  workflow_call:
+    outputs:
+      artifact-name:
+        description: "Name of the uploaded artifact"
+        value: ${{ jobs.build.outputs.artifact-name }}
 
 jobs:
   build:
     runs-on: ubuntu-latest
+    outputs:
+      artifact-name: rubynavigate-vsix
 
     steps:
       - name: Checkout

@@ -1,0 +1,40 @@
+name: Publish Extension
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  build:
+    uses: ./.github/workflows/build-vsix.yml
+
+  publish:
+    needs: build
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Download VSIX artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: ${{ needs.build.outputs.artifact-name }}
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install vsce globally
+        run: npm install -g @vscode/vsce
+
+      - name: Publish to Marketplace
+        run: vsce publish -p ${{ secrets.VSCE_TOKEN }}
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: '*.vsix'
+          generate_release_notes: true
