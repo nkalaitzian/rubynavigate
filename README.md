@@ -22,7 +22,11 @@ Quickly jump to Ruby classes and modules by their fully qualified names. Perfect
 1. Open the command palette (`Ctrl+Shift+P` / `Cmd+Shift+P`)
 2. Run: **RubyNavigate: Find Class/Module**
 3. Type the class or module name you're looking for
-4. Select a result to jump to that file
+4. Navigate results:
+   - **Enter**: Jump to the file and close the picker
+   - **Right Arrow**: Preview the file (without closing the picker)
+   - **Ctrl+Right Arrow**: Open in background (without closing the picker or taking focus)
+   - **X button** (on recently opened items): Remove from history
 
 ## Keyboard Shortcuts
 
@@ -53,12 +57,16 @@ Customize the behavior of RubyNavigate through VS Code settings:
 - **`rubynavigate.maxRecentlyOpenedItems`** (default: `10`)  
   Maximum number of recently opened items to display in the Quick Pick.
 
+- **`rubynavigate.excludeDirectories`** (default: `["node_modules", ".git", "vendor", "tmp", "dist", "out"]`)  
+  Directories to exclude when searching for Ruby files. Each entry will be matched as `**/{entry}/**`.
+
 Example settings:
 
 ```json
 {
   "rubynavigate.maxCurrentlyOpenItems": 15,
-  "rubynavigate.maxRecentlyOpenedItems": 20
+  "rubynavigate.maxRecentlyOpenedItems": 20,
+  "rubynavigate.excludeDirectories": ["node_modules", "vendor", "tmp", "coverage"]
 }
 ```
 

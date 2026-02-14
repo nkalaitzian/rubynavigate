@@ -11,6 +11,34 @@ export function activate(context: ExtensionContext) {
 	context.subscriptions.push(commands.registerCommand('rubynavigate.find', async () => {
 		await showRubySymbolPicker();
 	}));
+
+	// Command to preview the currently active selection in the picker (triggered by Right arrow)
+	context.subscriptions.push(commands.registerCommand('rubynavigate.previewActive', async () => {
+		if (currentPicker && currentPicker.activeItems && currentPicker.activeItems.length > 0) {
+			const picked = currentPicker.activeItems[0] as RubyPickItem;
+			if (picked && picked.symbol) {
+				await previewRubyLocation(picked.symbol);
+			}
+		}
+	}));
+
+	// Command to open the currently active selection in the background (preserve focus)
+	context.subscriptions.push(commands.registerCommand('rubynavigate.openInBackground', async () => {
+		if (currentPicker && currentPicker.activeItems && currentPicker.activeItems.length > 0) {
+			const picked = currentPicker.activeItems[0] as RubyPickItem;
+			if (picked && picked.symbol) {
+				const symbol = picked.symbol;
+				const doc = await workspace.openTextDocument(symbol.uri);
+				await window.showTextDocument(doc, { preview: false, preserveFocus: true });
+				if (symbol.range) {
+					const editor = window.visibleTextEditors.find(e => e.document.uri.fsPath === symbol.uri.fsPath);
+					if (editor) {
+						editor.revealRange(symbol.range, TextEditorRevealType.InCenter);
+					}
+				}
+			}
+		}
+	}));
 }
 
 export function deactivate() { }
@@ -31,6 +59,15 @@ async function openRubyLocation(match: { uri: Uri; range?: Range }) {
 	const filtered = history.filter(f => f !== filePath);
 	const updated = [filePath, ...filtered].slice(0, 30); // Keep last 30
 	await extensionContext.globalState.update('openedFiles', updated);
+}
+
+async function previewRubyLocation(match: { uri: Uri; range?: Range }) {
+	const document = await workspace.openTextDocument(match.uri);
+	const editor = await window.showTextDocument(document, { preview: true, preserveFocus: true });
+	if (match.range) {
+		editor.selection = new Selection(match.range.start, match.range.end);
+		editor.revealRange(match.range, TextEditorRevealType.InCenter);
+	}
 }
 
 type RubyPickItem = QuickPickItem & { symbol?: RubySymbol };
@@ -94,7 +131,7 @@ async function showRubySymbolPicker() {
 	picker.matchOnDetail = false;
 	picker.busy = true;
 
-	// Set context so Ctrl+D keybinding is available
+	// Set context so keybindings are available
 	await commands.executeCommand('setContext', 'extension.rubynavigate.pickerActive', true);
 
 	const allSymbols = await listRubySymbols();
@@ -136,7 +173,7 @@ async function showRubySymbolPicker() {
 			}
 		}
 
-		// Add previously opened (with separator and remove buttons)
+		// Add previously opened (with separator and remove button)
 		if (previous.length > 0) {
 			items.push({ label: 'Recently opened', kind: QuickPickItemKind.Separator });
 			let prevCount = 0;
@@ -145,10 +182,12 @@ async function showRubySymbolPicker() {
 				items.push({
 					label: symbol.name,
 					description: workspace.asRelativePath(symbol.uri),
-					buttons: [{
-						iconPath: new ThemeIcon('close'),
-						tooltip: 'Remove from recently opened'
-					}],
+					buttons: [
+						{
+							iconPath: new ThemeIcon('close'),
+							tooltip: 'Remove from recently opened'
+						}
+					],
 					symbol
 				} as RubyPickItem);
 				prevCount++;
@@ -182,9 +221,13 @@ async function showRubySymbolPicker() {
 	const disposables = [
 		picker.onDidChangeValue(value => updateItems(value)),
 		picker.onDidTriggerItemButton(async (event) => {
-			// Remove button clicked - remove from history
 			const item = event.item as RubyPickItem;
-			if (item.symbol) {
+			const button = event.button;
+
+			if (!item.symbol) { return; }
+
+			if (button.tooltip === 'Remove from recently opened') {
+				// Remove button clicked - remove from history
 				const history = extensionContext.globalState.get<string[]>('openedFiles', []);
 				const updated = history.filter(f => f !== item.symbol!.uri.fsPath);
 				await extensionContext.globalState.update('openedFiles', updated);

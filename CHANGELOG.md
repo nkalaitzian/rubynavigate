@@ -6,6 +6,20 @@ Check [Keep a Changelog](http://keepachangelog.com/) for recommendations on how 
 
 ## [Unreleased]
 
+## [0.0.4] - 2026-02-14
+
+### Added
+- Keyboard shortcuts for enhanced navigation within the Quick Pick:
+  - **Right Arrow**: Preview the selected file without dismissing the picker
+  - **Ctrl+Right Arrow**: Open the selected file in the background (without taking focus) while keeping the picker open
+- Preview mode now properly highlights and scrolls to the exact symbol location
+- Focus preservation when previewing or opening files in the background
+- Configuration setting `rubynavigate.excludeDirectories` to customize which directories are excluded when searching for Ruby files (default: `["node_modules", ".git", "vendor", "tmp", "dist", "out"]`)
+
+### Changed
+- Improved Quick Pick to remain open when using keyboard shortcuts for preview/background operations
+- Enhanced symbol location highlighting in preview mode
+
 ## [0.0.3] - 2026-02-14
 
 ### Added

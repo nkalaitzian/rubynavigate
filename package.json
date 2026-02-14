@@ -2,7 +2,7 @@
   "name": "rubynavigate",
   "displayName": "RubyNavigate",
   "description": "Quickly jump to Ruby classes and modules by their fully qualified names (e.g., Foo::Bar)",
-  "version": "0.0.3",
+  "version": "0.0.4",
   "publisher": "pastouris",
   "icon": "logo.png",
   "license": "GPL-3.0",
@@ -26,6 +26,11 @@
         "command": "rubynavigate.find",
         "title": "RubyNavigate: Find Class/Module"
       }
+      ,
+      {
+        "command": "rubynavigate.previewActive",
+        "title": "RubyNavigate: Preview Active Selection"
+      }
     ]
     ,
     "configuration": {
@@ -43,9 +48,30 @@
           "default": 10,
           "minimum": 0,
           "description": "Maximum number of 'Recently opened' items shown in the Quick Pick."
+        },
+        "rubynavigate.excludeDirectories": {
+          "type": "array",
+          "default": ["node_modules", ".git", "vendor", "tmp", "dist", "out"],
+          "items": {
+            "type": "string"
+          },
+          "description": "Directories to exclude when searching for Ruby files. Each entry will be matched as **/{entry}/**."
         }
       }
     }
+    ,
+    "keybindings": [
+      {
+        "command": "rubynavigate.previewActive",
+        "key": "right",
+        "when": "extension.rubynavigate.pickerActive && inQuickOpen"
+      },
+      {
+        "command": "rubynavigate.openInBackground",
+        "key": "ctrl+right",
+        "when": "extension.rubynavigate.pickerActive && inQuickOpen"
+      }
+    ]
   },
   "scripts": {
     "vscode:prepublish": "npm run package",

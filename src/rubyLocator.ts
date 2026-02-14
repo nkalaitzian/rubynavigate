@@ -1,7 +1,14 @@
 import { workspace, Uri, Range } from 'vscode';
 import { parseRubySymbolsFromText, RubyParsedSymbol } from './rubyParser';
 
-const DEFAULT_EXCLUDES = '**/{node_modules,.git,vendor,tmp,dist,out}/**';
+function getExcludePattern(): string {
+	const config = workspace.getConfiguration('rubynavigate');
+	const excludeDirs = config.get<string[]>('excludeDirectories', ['node_modules', '.git', 'vendor', 'tmp', 'dist', 'out']);
+	if (excludeDirs.length === 0) {
+		return '';
+	}
+	return `**/{${excludeDirs.join(',')}}/**`;
+}
 
 export type RubyLocation = {
   uri: Uri;
@@ -21,41 +28,43 @@ export function classNameToRelativePath(className: string): string {
 }
 
 export async function findRubyLocations(className: string): Promise<RubyLocation[]> {
-  const expectedPath = classNameToRelativePath(className);
-  // First try direct, common Rails-like locations to catch top-level classes quickly
-  const commonPrefixes = ['app/models', 'app/controllers', 'app/services', 'lib', 'app/models/concerns'];
-  for (const p of commonPrefixes) {
-    const prefixedMatches = await workspace.findFiles(`${p}/${expectedPath}`, DEFAULT_EXCLUDES, 50);
-    if (prefixedMatches.length > 0) {
-      return prefixedMatches.map(uri => ({ uri }));
-    }
-  }
+	const excludePattern = getExcludePattern();
+	const expectedPath = classNameToRelativePath(className);
+	// First try direct, common Rails-like locations to catch top-level classes quickly
+	const commonPrefixes = ['app/models', 'app/controllers', 'app/services', 'lib', 'app/models/concerns'];
+	for (const p of commonPrefixes) {
+		const prefixedMatches = await workspace.findFiles(`${p}/${expectedPath}`, excludePattern, 50);
+		if (prefixedMatches.length > 0) {
+			return prefixedMatches.map(uri => ({ uri }));
+		}
+	}
 
-  // Fallback to a general search across the workspace
-  const directMatches = await workspace.findFiles(`**/${expectedPath}`, DEFAULT_EXCLUDES);
-  if (directMatches.length > 0) {
-    return directMatches.map(uri => ({ uri }));
-  }
+	// Fallback to a general search across the workspace
+	const directMatches = await workspace.findFiles(`**/${expectedPath}`, excludePattern);
+	if (directMatches.length > 0) {
+		return directMatches.map(uri => ({ uri }));
+	}
 
-  return await findByDeclaration(className);
+	return await findByDeclaration(className);
 }
 
 export async function listRubySymbols(): Promise<RubySymbol[]> {
-  const files = await workspace.findFiles('**/*.rb', DEFAULT_EXCLUDES);
-  const symbols: RubySymbol[] = [];
+	const excludePattern = getExcludePattern();
+	const files = await workspace.findFiles('**/*.rb', excludePattern);
+	const symbols: RubySymbol[] = [];
 
-  for (const uri of files) {
-    const document = await workspace.openTextDocument(uri);
-    const text = document.getText();
-    const parsed = parseRubySymbolsFromText(text);
-    for (const entry of parsed) {
-      const start = document.positionAt(entry.index);
-      const end = document.positionAt(entry.index + entry.length);
-      symbols.push({ name: entry.name, uri, range: new Range(start, end) });
-    }
-  }
+	for (const uri of files) {
+		const document = await workspace.openTextDocument(uri);
+		const text = document.getText();
+		const parsed = parseRubySymbolsFromText(text);
+		for (const entry of parsed) {
+			const start = document.positionAt(entry.index);
+			const end = document.positionAt(entry.index + entry.length);
+			symbols.push({ name: entry.name, uri, range: new Range(start, end) });
+		}
+	}
 
-  return symbols;
+	return symbols;
 }
 
 
