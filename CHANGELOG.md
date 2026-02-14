@@ -6,6 +6,12 @@ Check [Keep a Changelog](http://keepachangelog.com/) for recommendations on how 
 
 ## [Unreleased]
 
+## [0.0.5] - 2026-02-14
+
+### Added
+- Root-aware lookup that treats queries starting with `::` as absolute paths, so `::Foo::Bar` only matches the declaration at the workspace root and ignores nested namespaces (e.g., `Baz::Foo::Bar`).
+- Regression tests that exercise the root lookup matcher to keep the new behavior covered.
+
 ## [0.0.4] - 2026-02-14
 
 ### Added

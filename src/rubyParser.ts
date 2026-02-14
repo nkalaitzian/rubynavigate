@@ -79,5 +79,10 @@ export function matchesRubySymbol(name: string, term: string): boolean {
   if (normalized.length === 0) {
     return true;
   }
-  return name.toLowerCase().includes(normalized);
+  const absoluteLookup = normalized.startsWith('::');
+  const target = absoluteLookup ? normalized.slice(2) : normalized;
+  if (absoluteLookup) {
+    return name.toLowerCase().startsWith(target);
+  }
+  return name.toLowerCase().includes(target);
 }

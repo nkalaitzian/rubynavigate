@@ -50,4 +50,11 @@ suite('Ruby symbol detection', () => {
 		assert.strictEqual(matchesRubySymbol('Foo::Bar::Baz', 'Baz::Foo'), false);
 		assert.strictEqual(matchesRubySymbol('Foo::Bar::Baz', 'Foo::Baz'), false);
 	});
+
+		test('Root lookups honor leading :: prefixes', () => {
+			assert.strictEqual(matchesRubySymbol('Foo::Bar', '::Foo::Bar'), true);
+			assert.strictEqual(matchesRubySymbol('Foo::Bar::Baz', '::Foo::Bar::Baz'), true);
+			assert.strictEqual(matchesRubySymbol('Baz::Foo::Bar', '::Foo::Bar'), false);
+			assert.strictEqual(matchesRubySymbol('Baz::Foo::Bar', 'Foo::Bar'), true);
+		});
 });

@@ -2,7 +2,7 @@
   "name": "rubynavigate",
   "displayName": "RubyNavigate",
   "description": "Quickly jump to Ruby classes and modules by their fully qualified names (e.g., Foo::Bar)",
-  "version": "0.0.4",
+  "version": "0.0.5",
   "publisher": "pastouris",
   "icon": "logo.png",
   "license": "GPL-3.0",

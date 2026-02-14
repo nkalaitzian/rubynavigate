@@ -27,6 +27,7 @@ Quickly jump to Ruby classes and modules by their fully qualified names. Perfect
    - **Right Arrow**: Preview the file (without closing the picker)
    - **Ctrl+Right Arrow**: Open in background (without closing the picker or taking focus)
    - **X button** (on recently opened items): Remove from history
+   - Prefix your query with `::` to constrain the search to root-level symbols (e.g., `::Foo::Bar` will ignore `Baz::Foo::Bar`).
 
 ## Keyboard Shortcuts
 
