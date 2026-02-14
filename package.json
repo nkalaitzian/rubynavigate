@@ -1,7 +1,7 @@
 {
   "name": "rubynavigate",
   "displayName": "RubyNavigate",
-  "description": "Navigate Ruby classes and modules by their reference",
+  "description": "Quickly jump to Ruby classes and modules by their fully qualified names (e.g., Foo::Bar)",
   "version": "0.0.2",
   "publisher": "pastouris",
   "icon": "logo.png",
@@ -24,7 +24,7 @@
     "commands": [
       {
         "command": "rubynavigate.find",
-        "title": "[RubyNavigate] Find Class/Module"
+        "title": "RubyNavigate: Find Class/Module"
       }
     ]
   },
