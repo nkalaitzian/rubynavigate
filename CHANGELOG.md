@@ -1,6 +1,10 @@
 # Change Log
 ## [Unreleased]
 
+### Planned
+- Constant lookup support
+- Instance and class method lookup support
+
 ## [0.0.6] - 2026-02-14
 
 ### Changed
