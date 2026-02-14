@@ -7,7 +7,7 @@ on:
 
 jobs:
   build:
-    uses: ./.github/workflows/build-vsix.yml@main
+    uses: ./.github/workflows/build-vsix.yml
 
   publish:
     needs: build

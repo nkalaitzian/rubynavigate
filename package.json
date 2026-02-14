@@ -16,9 +16,6 @@
   "categories": [
     "Other"
   ],
-  "activationEvents": [
-    "onCommand:rubynavigate.find"
-  ],
   "main": "./dist/extension.js",
   "contributes": {
     "commands": [
