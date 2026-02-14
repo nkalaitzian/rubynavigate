@@ -1,5 +1,7 @@
 # RubyNavigate
 
+![RubyNavigate Logo](logo.png)
+
 Quickly jump to Ruby classes and modules by their fully qualified names. Perfect for navigating large Ruby projects with deeply nested class hierarchies.
 
 ## Features
