@@ -20,7 +20,7 @@ jobs:
       - name: Download VSIX artifact
         uses: actions/download-artifact@v4
         with:
-          name: ${{ needs.build.outputs.artifact-name }}
+          name: rubynavigate-vsix
 
       - name: Setup Node
         uses: actions/setup-node@v4
