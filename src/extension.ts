@@ -1,4 +1,4 @@
-import { window, commands, ExtensionContext, workspace, Range, Selection, TextEditorRevealType, Uri, QuickPickItem, QuickPick, QuickPickItemKind, ThemeIcon, QuickInputButton } from 'vscode';
+import { window, commands, ExtensionContext, workspace, Range, Selection, TextEditorRevealType, Uri, QuickPickItem, QuickPick, QuickPickItemKind, ThemeIcon } from 'vscode';
 import { listRubySymbols, RubySymbol } from './rubyLocator';
 import { matchesRubySymbol } from './rubyParser';
 

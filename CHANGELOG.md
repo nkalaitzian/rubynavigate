@@ -1,6 +1,11 @@
 # Change Log
 ## [Unreleased]
 
+## [0.0.6] - 2026-02-14
+
+### Changed
+- Improved extension discoverability in VS Code Marketplace with better categorization and search keywords
+
 ## [0.0.5] - 2026-02-14
 
 ### Added
