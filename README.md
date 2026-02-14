@@ -23,6 +23,7 @@ Quickly jump to Ruby classes and modules by their fully qualified names. Perfect
 
 - **Constant Lookup**: Search for Ruby constants defined in your project
 - **Method Lookup**: Search for instance methods and class methods
+- **Scope Lookup**: Search for Rails scopes defined in your models
 
 ## Usage
 

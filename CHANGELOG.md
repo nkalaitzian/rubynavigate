@@ -4,6 +4,7 @@
 ### Planned
 - Constant lookup support
 - Instance and class method lookup support
+- Scope lookup support
 
 ## [0.0.6] - 2026-02-14
 
