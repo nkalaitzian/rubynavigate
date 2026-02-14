@@ -29,4 +29,25 @@ suite('Ruby symbol detection', () => {
 		assert.ok(names.includes('Foo::Bar'));
 		assert.ok(names.includes('Foo::Par'));
 	});
+
+	test('Finds nested classes with qualified outer class', () => {
+		const text = [
+			'class Foo::Bar',
+			'  class Baz',
+			'  end',
+			'end',
+			''
+		].join('\n');
+		const names = parseRubySymbolsFromText(text).map(symbol => symbol.name);
+		assert.ok(names.includes('Foo::Bar'));
+		assert.ok(names.includes('Foo::Bar::Baz'));
+
+		assert.strictEqual(matchesRubySymbol('Foo::Bar', 'Foo::B'), true);
+		assert.strictEqual(matchesRubySymbol('Foo::Bar', 'Foo::Bar'), true);
+
+		assert.strictEqual(matchesRubySymbol('Foo::Bar::Baz', 'Baz'), true);
+		assert.strictEqual(matchesRubySymbol('Foo::Bar::Baz', 'Foo::Bar::Baz'), true);
+		assert.strictEqual(matchesRubySymbol('Foo::Bar::Baz', 'Baz::Foo'), false);
+		assert.strictEqual(matchesRubySymbol('Foo::Bar::Baz', 'Foo::Baz'), false);
+	});
 });
