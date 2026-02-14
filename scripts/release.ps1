@@ -7,6 +7,10 @@ $version = $packageJson.version
 $tag = "v$version"
 
 Write-Host "Creating tag $tag based on package.json version..." -ForegroundColor Green
+if (git tag -l "$tag" | Where-Object { $_ }) {
+	Write-Host "Tag $tag already exists. Aborting release." -ForegroundColor Red
+	exit 1
+}
 git tag $tag
 
 Write-Host "Pushing tag to remote..." -ForegroundColor Cyan
