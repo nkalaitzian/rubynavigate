@@ -3,6 +3,7 @@
   "displayName": "RubyNavigate",
   "description": "Navigate Ruby classes and modules by their reference",
   "version": "0.0.1",
+  "publisher": "pastouris",
   "license": "GPL-3.0",
   "repository": {
     "type": "git",
