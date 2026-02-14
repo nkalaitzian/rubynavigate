@@ -6,6 +6,21 @@ Check [Keep a Changelog](http://keepachangelog.com/) for recommendations on how 
 
 ## [Unreleased]
 
+## [0.0.3] - 2026-02-14
+
+### Added
+- Visual separators to group results into "Currently open", "Recently opened", and "Workspace results" sections
+- Configuration settings to control maximum items per section:
+  - `rubynavigate.maxCurrentlyOpenItems` (default: 10)
+  - `rubynavigate.maxRecentlyOpenedItems` (default: 10)
+- Remove button (X) on recently opened items to clear them from history
+- Recently opened files are now tracked and prioritized in the Quick Pick
+- Currently open files with Ruby symbols are shown first in results
+
+### Changed
+- Quick Pick now maintains grouped sections while filtering/searching
+- Results are ordered by relevance: currently open → recently opened → workspace results
+
 ## [0.0.2] - 2026-02-14
 
 ### Added

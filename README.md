@@ -9,6 +9,12 @@ Quickly jump to Ruby classes and modules by their fully qualified names. Perfect
 - **Fast Navigation**: Search and jump to any Ruby class or module in your workspace
 - **Fully Qualified Names**: Support for nested modules and qualified class names (e.g., `Foo::Bar::Baz`)
 - **Live Filtering**: Results update as you type
+- **Smart Grouping**: Results are organized into three sections:
+  - **Currently open** files (with Ruby symbols)
+  - **Recently opened** files you've previously navigated to
+  - **Workspace results** for all other matches
+- **Recent History Management**: Remove items from recently opened with the X button
+- **Configurable Limits**: Control how many items appear in each section
 - **Workspace Scanning**: Automatically discovers Ruby files in your project
 
 ## Usage
@@ -34,6 +40,25 @@ Alternatively, you can manually add this to your `keybindings.json`:
 {
   "key": "ctrl+shift+/",
   "command": "rubynavigate.find"
+}
+```
+
+## Configuration
+
+Customize the behavior of RubyNavigate through VS Code settings:
+
+- **`rubynavigate.maxCurrentlyOpenItems`** (default: `10`)  
+  Maximum number of currently open items to display in the Quick Pick.
+
+- **`rubynavigate.maxRecentlyOpenedItems`** (default: `10`)  
+  Maximum number of recently opened items to display in the Quick Pick.
+
+Example settings:
+
+```json
+{
+  "rubynavigate.maxCurrentlyOpenItems": 15,
+  "rubynavigate.maxRecentlyOpenedItems": 20
 }
 ```
 
