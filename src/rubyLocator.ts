@@ -58,6 +58,9 @@ export async function findRubyLocations(className: string): Promise<RubyLocation
 export async function listRubySymbols(): Promise<RubySymbol[]> {
 	// Use cache if available
 	if (symbolCache) {
+		if (symbolCache.isIndexingActive()) {
+			return symbolCache.getAllSymbols();
+		}
 		await symbolCache.ensureIndexed();
 		return symbolCache.getAllSymbols();
 	}

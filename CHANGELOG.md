@@ -4,6 +4,13 @@
 ### Planned
 - Instance and class method lookup support
 
+## [0.0.12] - 2026-02-15
+
+### Added
+- Indexing ETA in progress notifications (time remaining estimate)
+- Partial results during indexing (symbols appear as files are parsed)
+- Picker hint while indexing to explain incomplete results
+
 ## [0.0.11] - 2026-02-15
 
 ### Added

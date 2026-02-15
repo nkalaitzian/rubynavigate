@@ -7,6 +7,9 @@ export class SymbolCache {
 	private isIndexing: boolean = false;
 	private indexingPromise: Promise<void> | null = null;
 	private watchers: Disposable[] = [];
+	private indexingStartMs: number | null = null;
+	private totalFiles: number = 0;
+	private processedFiles: number = 0;
 
 	constructor() {
 		this.setupFileWatchers();
@@ -61,6 +64,9 @@ export class SymbolCache {
 	async rebuildIndex(progress?: Progress<{ message?: string; increment?: number }>): Promise<void> {
 		this.isIndexing = true;
 		this.cache.clear();
+		this.indexingStartMs = Date.now();
+		this.totalFiles = 0;
+		this.processedFiles = 0;
 
 		this.indexingPromise = this.performIndexing(progress);
 		await this.indexingPromise;
@@ -76,9 +82,15 @@ export class SymbolCache {
 
 		const files = await workspace.findFiles('**/*.rb', excludePattern);
 		const totalFiles = files.length;
+		this.totalFiles = totalFiles;
+		this.processedFiles = 0;
 
 		if (progress) {
-			progress.report({ message: `Found ${totalFiles} Ruby files` });
+			if (totalFiles === 0) {
+				progress.report({ message: 'No Ruby files found' });
+			} else {
+				progress.report({ message: `Found ${totalFiles} Ruby files` });
+			}
 		}
 
 		// Process files in batches to avoid blocking
@@ -86,19 +98,46 @@ export class SymbolCache {
 		for (let i = 0; i < files.length; i += batchSize) {
 			const batch = files.slice(i, i + batchSize);
 			await Promise.all(batch.map(uri => this.parseFile(uri)));
+			this.processedFiles = Math.min(i + batchSize, totalFiles);
 			
 			if (progress) {
-				const processed = Math.min(i + batchSize, totalFiles);
-				const percentage = Math.round((processed / totalFiles) * 100);
+				const processed = this.processedFiles;
+				const percentage = totalFiles === 0 ? 100 : Math.round((processed / totalFiles) * 100);
+				const eta = this.formatEta(processed, totalFiles);
+				const etaMessage = eta ? ` - ETA ${eta}` : '';
 				progress.report({ 
-					message: `${processed}/${totalFiles} files (${percentage}%)`,
-					increment: (batchSize / totalFiles) * 100
+					message: `${processed}/${totalFiles} files (${percentage}%)${etaMessage}`,
+					increment: totalFiles === 0 ? 100 : (batchSize / totalFiles) * 100
 				});
 			}
 			
 			// Yield to allow other operations
 			await new Promise(resolve => setTimeout(resolve, 0));
 		}
+	}
+
+	private formatEta(processed: number, total: number): string | null {
+		if (!this.indexingStartMs || processed <= 0 || total <= 0) {
+			return null;
+		}
+		const elapsedMs = Date.now() - this.indexingStartMs;
+		const rate = processed / elapsedMs;
+		if (rate <= 0) {
+			return null;
+		}
+		const remaining = total - processed;
+		const remainingMs = Math.max(0, remaining / rate);
+		const totalSeconds = Math.round(remainingMs / 1000);
+		const minutes = Math.floor(totalSeconds / 60);
+		const seconds = totalSeconds % 60;
+		if (minutes > 0) {
+			return `${minutes}m ${seconds}s`;
+		}
+		return `${seconds}s`;
+	}
+
+	isIndexingActive(): boolean {
+		return this.isIndexing;
 	}
 
 	private async parseFile(uri: Uri): Promise<void> {

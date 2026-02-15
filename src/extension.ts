@@ -195,6 +195,11 @@ async function showRubySymbolPicker() {
 		const items: Array<RubyPickItem | { label?: string; kind: QuickPickItemKind; }> = [];
 		let count = 0;
 
+		// Show indexing hint while cache is still building
+		if (symbolCache && symbolCache.isIndexingActive()) {
+			items.push({ label: 'Indexing symbols... results will improve as more files load', kind: QuickPickItemKind.Separator });
+		}
+
 		// Add currently open (with separator)
 		if (current.length > 0) {
 			items.push({ label: 'Currently open', kind: QuickPickItemKind.Separator });
