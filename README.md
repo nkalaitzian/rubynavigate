@@ -20,7 +20,8 @@ Quickly jump to Ruby classes, modules, constants, and Rails scopes by their full
 - **Recent History Management**: Remove items from recently opened with the X button
 - **Configurable Limits**: Control how many items appear in each section
 - **Optimized Performance**: Intelligent caching system for instant results, even in large projects
-  - Background indexing on startup
+  - Background indexing on startup with progress notification
+  - Real-time progress updates for large projects (shows file count and percentage)
   - Automatic cache invalidation when files change
   - Picker opens immediately while symbols load
 - **Workspace Scanning**: Automatically discovers Ruby files in your project

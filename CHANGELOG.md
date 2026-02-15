@@ -4,6 +4,13 @@
 ### Planned
 - Instance and class method lookup support
 
+## [0.0.10] - 2026-02-15
+
+### Added
+- Progress notification with real-time updates during symbol indexing
+- Visual progress bar showing file processing status (e.g., "5000/22000 files (23%)")
+- Improved user feedback for large projects with thousands of Ruby files
+
 ## [0.0.9] - 2026-02-15
 
 ### Added

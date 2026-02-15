@@ -1,4 +1,4 @@
-import { window, commands, ExtensionContext, workspace, Range, Selection, TextEditorRevealType, Uri, QuickPickItem, QuickPick, QuickPickItemKind, ThemeIcon } from 'vscode';
+import { window, commands, ExtensionContext, workspace, Range, Selection, TextEditorRevealType, Uri, QuickPickItem, QuickPick, QuickPickItemKind, ThemeIcon, ProgressLocation } from 'vscode';
 import { listRubySymbols, RubySymbol, setSymbolCache } from './rubyLocator';
 import { matchesRubySymbol } from './rubyParser';
 import { SymbolCache } from './symbolCache';
@@ -18,10 +18,23 @@ export function activate(context: ExtensionContext) {
 	
 	// Start indexing in background (don't await) - only if workspace is open
 	if (workspace.workspaceFolders && workspace.workspaceFolders.length > 0) {
-		symbolCache.rebuildIndex().then(() => {
-			console.log(`RubyNavigate: Indexed ${symbolCache.getFileCount()} files with ${symbolCache.getSymbolCount()} symbols`);
-		}).catch(err => {
+		interface ProgressReporter {
+			report: (value: { message?: string; increment?: number }) => void;
+		}
+
+		window.withProgress({
+			location: ProgressLocation.Notification,
+			title: "RubyNavigate: Indexing symbols",
+			cancellable: false
+		}, async (progress: ProgressReporter) => {
+			await symbolCache.rebuildIndex(progress);
+			const fileCount = symbolCache.getFileCount();
+			const symbolCount = symbolCache.getSymbolCount();
+			console.log(`RubyNavigate: Indexed ${fileCount} files with ${symbolCount} symbols`);
+			return;
+		}).then(undefined, (err: Error) => {
 			console.error('RubyNavigate: Error during indexing:', err);
+			window.showErrorMessage(`RubyNavigate: Failed to index symbols: ${err.message}`);
 		});
 	}
 
