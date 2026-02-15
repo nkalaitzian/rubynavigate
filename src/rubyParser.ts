@@ -7,6 +7,7 @@ export type RubyParsedSymbol = {
 export function parseRubySymbolsFromText(text: string): RubyParsedSymbol[] {
   const symbols: RubyParsedSymbol[] = [];
   const declRegex = /^\s*(class|module)\s+([A-Z][A-Za-z0-9]*(?:::[A-Z][A-Za-z0-9]*)*)/;
+  const constantRegex = /^\s*([A-Z][A-Z0-9_]*)\s*=/;
   const otherBlockRegex = /^\s*(def|if|unless|case|while|until|for|begin|do)\b/;
   const classShovelRegex = /^\s*class\s+<</;
   const endRegex = /^\s*end\b/;
@@ -45,6 +46,18 @@ export function parseRubySymbolsFromText(text: string): RubyParsedSymbol[] {
       continue;
     }
 
+    const constantMatch = constantRegex.exec(line);
+    if (constantMatch) {
+      const constantName = constantMatch[1];
+      const currentNamespace = getCurrentNamespace(stack);
+      const fullName = currentNamespace ? `${currentNamespace}::${constantName}` : constantName;
+      const nameIndexInLine = constantMatch.index + constantMatch[0].indexOf(constantName);
+      const nameIndex = offset + nameIndexInLine;
+      symbols.push({ name: fullName, index: nameIndex, length: constantName.length });
+      offset += line.length + 1;
+      continue;
+    }
+
     if (otherBlockRegex.test(line)) {
       stack.push({ type: 'other' });
     }
@@ -74,6 +87,15 @@ function getPrefix(stack: Array<{ name?: string; absolute?: boolean }>): string[
   return names;
 }
 
+function getCurrentNamespace(stack: Array<{ type: 'class' | 'module' | 'other'; name?: string }>): string | undefined {
+  for (let i = stack.length - 1; i >= 0; i -= 1) {
+    if ((stack[i].type === 'class' || stack[i].type === 'module') && stack[i].name) {
+      return stack[i].name;
+    }
+  }
+  return undefined;
+}
+
 export function matchesRubySymbol(name: string, term: string): boolean {
   const normalized = term.trim().toLowerCase();
   if (normalized.length === 0) {
@@ -81,6 +103,15 @@ export function matchesRubySymbol(name: string, term: string): boolean {
   }
   const absoluteLookup = normalized.startsWith('::');
   const target = absoluteLookup ? normalized.slice(2) : normalized;
+  
+  // Handle namespace search (e.g., "Foo::" should match "Foo" and "Foo::Bar")
+  if (target.endsWith('::')) {
+    const namespace = target.slice(0, -2);
+    const nameLower = name.toLowerCase();
+    // Match the namespace itself or anything starting with namespace::
+    return nameLower === namespace || nameLower.startsWith(namespace + '::');
+  }
+  
   if (absoluteLookup) {
     return name.toLowerCase().startsWith(target);
   }

@@ -4,12 +4,13 @@
   <img src="logo.png" alt="RubyNavigate Logo" width="320" />
 </p>
 
-Quickly jump to Ruby classes and modules by their fully qualified names. Perfect for navigating large Ruby projects with deeply nested class hierarchies.
+Quickly jump to Ruby classes, modules, and constants by their fully qualified names. Perfect for navigating large Ruby projects with deeply nested class hierarchies.
 
 ## Features
 
-- **Fast Navigation**: Search and jump to any Ruby class or module in your workspace
+- **Fast Navigation**: Search and jump to any Ruby class, module, or constant in your workspace
 - **Fully Qualified Names**: Support for nested modules and qualified class names (e.g., `Foo::Bar::Baz`)
+- **Constant Lookup**: Search for Ruby constants defined in classes and modules (e.g., `Foo::BAR`)
 - **Live Filtering**: Results update as you type
 - **Smart Grouping**: Results are organized into three sections:
   - **Currently open** files (with Ruby symbols)
@@ -21,7 +22,6 @@ Quickly jump to Ruby classes and modules by their fully qualified names. Perfect
 
 ## Upcoming Features
 
-- **Constant Lookup**: Search for Ruby constants defined in your project
 - **Method Lookup**: Search for instance methods and class methods
 - **Scope Lookup**: Search for Rails scopes defined in your models
 
@@ -86,6 +86,7 @@ Given a project structure:
 ```
 app/models/
   user.rb          # class User
+                   #   STATUS = [:active, :inactive].freeze
   admin/
     panel.rb       # module Admin; class Panel; end
 lib/
@@ -95,6 +96,7 @@ lib/
 You can search for:
 
 - `User` - Finds the User class
+- `User::STATUS` - Finds the STATUS constant in the User class
 - `Admin::Panel` - Finds the Panel class nested in Admin module
 - `Utils::Helper` - Finds the Helper class in Utils module
 - `Panel` - Partial match also works (case-insensitive)

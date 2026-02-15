@@ -2,9 +2,15 @@
 ## [Unreleased]
 
 ### Planned
-- Constant lookup support
 - Instance and class method lookup support
 - Scope lookup support
+
+## [0.0.7] - 2026-02-15
+
+### Added
+- Constant lookup support - search for Ruby constants defined in classes and modules (e.g., `Foo::BAR`)
+- Support for top-level constants
+- Tests for constant parsing in various contexts
 
 ## [0.0.6] - 2026-02-14
 
