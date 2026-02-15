@@ -4,6 +4,19 @@
 ### Planned
 - Instance and class method lookup support
 
+## [0.0.9] - 2026-02-15
+
+### Added
+- Symbol cache system for improved performance in large projects
+- Background indexing on extension activation
+- File system watchers for automatic cache invalidation on file changes
+- Instant picker opening - results appear as symbols are loaded
+
+### Changed
+- Picker now opens immediately and updates as symbols load in the background
+- Symbols are cached and only re-parsed when files change
+- Significantly improved performance for projects with hundreds or thousands of Ruby files
+
 ## [0.0.8] - 2026-02-15
 
 ### Added

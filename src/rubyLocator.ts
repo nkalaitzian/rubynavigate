@@ -1,5 +1,12 @@
 import { workspace, Uri, Range } from 'vscode';
 import { parseRubySymbolsFromText, RubyParsedSymbol } from './rubyParser';
+import { SymbolCache } from './symbolCache';
+
+let symbolCache: SymbolCache | null = null;
+
+export function setSymbolCache(cache: SymbolCache) {
+	symbolCache = cache;
+}
 
 function getExcludePattern(): string {
 	const config = workspace.getConfiguration('rubynavigate');
@@ -49,6 +56,13 @@ export async function findRubyLocations(className: string): Promise<RubyLocation
 }
 
 export async function listRubySymbols(): Promise<RubySymbol[]> {
+	// Use cache if available
+	if (symbolCache) {
+		await symbolCache.ensureIndexed();
+		return symbolCache.getAllSymbols();
+	}
+
+	// Fallback to direct scanning if cache not initialized
 	const excludePattern = getExcludePattern();
 	const files = await workspace.findFiles('**/*.rb', excludePattern);
 	const symbols: RubySymbol[] = [];

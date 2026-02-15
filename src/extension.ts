@@ -1,13 +1,30 @@
 import { window, commands, ExtensionContext, workspace, Range, Selection, TextEditorRevealType, Uri, QuickPickItem, QuickPick, QuickPickItemKind, ThemeIcon } from 'vscode';
-import { listRubySymbols, RubySymbol } from './rubyLocator';
+import { listRubySymbols, RubySymbol, setSymbolCache } from './rubyLocator';
 import { matchesRubySymbol } from './rubyParser';
+import { SymbolCache } from './symbolCache';
 
 let extensionContext: ExtensionContext;
 let currentPicker: any;
 let refreshPicker: ((value: string) => void) | undefined;
+let symbolCache: SymbolCache;
 
 export function activate(context: ExtensionContext) {
 	extensionContext = context;
+	
+	// Initialize symbol cache and start background indexing
+	symbolCache = new SymbolCache();
+	setSymbolCache(symbolCache);
+	context.subscriptions.push(symbolCache);
+	
+	// Start indexing in background (don't await) - only if workspace is open
+	if (workspace.workspaceFolders && workspace.workspaceFolders.length > 0) {
+		symbolCache.rebuildIndex().then(() => {
+			console.log(`RubyNavigate: Indexed ${symbolCache.getFileCount()} files with ${symbolCache.getSymbolCount()} symbols`);
+		}).catch(err => {
+			console.error('RubyNavigate: Error during indexing:', err);
+		});
+	}
+
 	context.subscriptions.push(commands.registerCommand('rubynavigate.find', async () => {
 		await showRubySymbolPicker();
 	}));
@@ -134,8 +151,12 @@ async function showRubySymbolPicker() {
 	// Set context so keybindings are available
 	await commands.executeCommand('setContext', 'extension.rubynavigate.pickerActive', true);
 
-	const allSymbols = await listRubySymbols();
-	const currentlyOpen = getCurrentlyOpenSymbolFiles(allSymbols);
+	// Show picker immediately
+	picker.show();
+
+	// Load symbols in background
+	let allSymbols: RubySymbol[] = [];
+	let currentlyOpen: Set<string> = new Set();
 
 	const updateItems = (value: string) => {
 		const filtered = allSymbols.filter(symbol => matchesRubySymbol(symbol.name, value));
@@ -215,8 +236,16 @@ async function showRubySymbolPicker() {
 	// expose refresh so commands can request a refresh after modifying history
 	refreshPicker = updateItems;
 
-	updateItems('');
-	picker.busy = false;
+	// Start loading symbols asynchronously
+	listRubySymbols().then(symbols => {
+		allSymbols = symbols;
+		currentlyOpen = getCurrentlyOpenSymbolFiles(allSymbols);
+		updateItems(picker.value);
+		picker.busy = false;
+	}).catch(err => {
+		console.error('Error loading symbols:', err);
+		picker.busy = false;
+	});
 
 	const disposables = [
 		picker.onDidChangeValue(value => updateItems(value)),
