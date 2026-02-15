@@ -12,6 +12,9 @@ Quickly jump to Ruby classes, modules, constants, and Rails scopes by their full
 - **Fully Qualified Names**: Support for nested modules and qualified class names (e.g., `Foo::Bar::Baz`)
 - **Constant Lookup**: Search for Ruby constants defined in classes and modules (e.g., `Foo::BAR`)
 - **Rails Scope Lookup**: Search for ActiveRecord scopes defined in your models (e.g., `User.active`)
+- **Smart Result Ordering**: Exact matches first, then prefix matches, then substring matches
+  - Within each category, closer/shorter matches are prioritized
+  - Search for `User::Admin` shows `User::Admin` → `User::AdminB` → `User::Administrator`
 - **Live Filtering**: Results update as you type
 - **Smart Grouping**: Results are organized into three sections:
   - **Currently open** files (with Ruby symbols)

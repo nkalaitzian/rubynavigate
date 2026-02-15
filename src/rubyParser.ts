@@ -139,3 +139,53 @@ export function matchesRubySymbol(name: string, term: string): boolean {
   }
   return name.toLowerCase().includes(target);
 }
+
+/**
+ * Compare two symbols for sorting by match quality.
+ * Sorts by: exact match > prefix match > substring match
+ * Within each category, earlier/shorter matches are prioritized.
+ */
+export function compareMatches(nameA: string, nameB: string, searchTerm: string): number {
+	const normalized = searchTerm.trim().toLowerCase();
+	const lowerA = nameA.toLowerCase();
+	const lowerB = nameB.toLowerCase();
+	
+	// Exact match comes first
+	const aIsExact = lowerA === normalized;
+	const bIsExact = lowerB === normalized;
+	if (aIsExact && !bIsExact) return -1;
+	if (bIsExact && !aIsExact) return 1;
+	if (aIsExact && bIsExact) return 0;
+	
+	// Prefix match (starts with search term)
+	const aStartsWith = lowerA.startsWith(normalized);
+	const bStartsWith = lowerB.startsWith(normalized);
+	if (aStartsWith && !bStartsWith) return -1;
+	if (bStartsWith && !aStartsWith) return 1;
+	
+	// For prefix matches, shorter names are better (closer match)
+	if (aStartsWith && bStartsWith) {
+		return nameA.length - nameB.length;
+	}
+	
+	// Substring match (contains search term)
+	const aIndex = lowerA.indexOf(normalized);
+	const bIndex = lowerB.indexOf(normalized);
+	const aHasSubstring = aIndex !== -1;
+	const bHasSubstring = bIndex !== -1;
+	
+	if (aHasSubstring && !bHasSubstring) return -1;
+	if (bHasSubstring && !aHasSubstring) return 1;
+	
+	// For substring matches, earlier occurrence is better
+	if (aHasSubstring && bHasSubstring) {
+		if (aIndex !== bIndex) {
+			return aIndex - bIndex;
+		}
+		// Same position, shorter names are better
+		return nameA.length - nameB.length;
+	}
+	
+	// No match (shouldn't happen)
+	return 0;
+}

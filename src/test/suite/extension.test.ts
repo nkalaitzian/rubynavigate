@@ -1,6 +1,6 @@
 import * as assert from 'assert';
 
-import { matchesRubySymbol, parseRubySymbolsFromText } from '../../rubyParser';
+import { matchesRubySymbol, parseRubySymbolsFromText, compareMatches } from '../../rubyParser';
 
 suite('Ruby symbol detection', () => {
 	test('Finds simple class and matches filter terms', () => {
@@ -196,5 +196,42 @@ suite('Ruby symbol detection', () => {
 		assert.ok(postScopes.includes('Post.published'));
 		assert.ok(postScopes.includes('Post.draft'));
 		assert.strictEqual(postScopes.length, 2); // Only scopes, not constants
+	});
+
+	test('Sorts results: exact match first', () => {
+		// Exact match should come before prefix and substring matches
+		assert.strictEqual(compareMatches('User::Admin', 'User::Admin', 'User::Admin'), 0);
+		assert.strictEqual(compareMatches('User::Admin', 'User::AdminB', 'User::Admin') < 0, true);
+		assert.strictEqual(compareMatches('User::Admin', 'User::AdminCount', 'User::Admin') < 0, true);
+		assert.strictEqual(compareMatches('User::Admin', 'SuperUser::Admin', 'User::Admin') < 0, true);
+	});
+
+	test('Sorts results: prefix matches come before substring matches', () => {
+		// Prefix match (User::AdminX) should come before substring match (SuperUser::Admin)
+		assert.strictEqual(compareMatches('User::AdminB', 'SuperUser::Admin', 'User::Admin') < 0, true);
+		assert.strictEqual(compareMatches('User::AdminHelper', 'SuperUser::Admin', 'User::Admin') < 0, true);
+	});
+
+	test('Sorts results: shorter prefix matches come before longer ones', () => {
+		// When both are prefix matches, shorter is better (closer match)
+		assert.strictEqual(compareMatches('User::Admin', 'User::AdminHelper', 'User::Admin') < 0, true);
+		assert.strictEqual(compareMatches('User::AdminB', 'User::AdminCount', 'User::Admin') < 0, true);
+		
+		// Length comparison
+		assert.strictEqual(compareMatches('Foo', 'FooBar', 'Foo') < 0, true);
+	});
+
+	test('Sorts results: earlier substring matches come before later ones', () => {
+		// Both contain 'Admin' but not at start. Index 1 should come before index 8
+		assert.strictEqual(compareMatches('ZAdminUser', 'SomeZoneAdmin', 'Admin') < 0, true);
+		// 'Admin' at position 1 vs position 8
+		assert.strictEqual(compareMatches('MAdminPost', 'PostAdmin', 'Admin') < 0, true);
+	});
+
+	test('Sorts results: for same substring index, shorter names win', () => {
+		// Both have 'Admin' at same position (0), but different lengths
+		// Actually, if they both start with Admin, shorter is better (tested above)
+		// This test case will have both match at same position but different lengths
+		assert.strictEqual(compareMatches('AdminX', 'AdminXYZ', 'Admin') < 0, true);
 	});
 });

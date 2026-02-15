@@ -1,6 +1,6 @@
 import { window, commands, ExtensionContext, workspace, Range, Selection, TextEditorRevealType, Uri, QuickPickItem, QuickPick, QuickPickItemKind, ThemeIcon, ProgressLocation } from 'vscode';
 import { listRubySymbols, RubySymbol, setSymbolCache } from './rubyLocator';
-import { matchesRubySymbol } from './rubyParser';
+import { matchesRubySymbol, compareMatches } from './rubyParser';
 import { SymbolCache } from './symbolCache';
 
 let extensionContext: ExtensionContext;
@@ -173,6 +173,10 @@ async function showRubySymbolPicker() {
 
 	const updateItems = (value: string) => {
 		const filtered = allSymbols.filter(symbol => matchesRubySymbol(symbol.name, value));
+		
+		// Sort filtered results by match quality (best matches first)
+		filtered.sort((a, b) => compareMatches(a.name, b.name, value));
+		
 		const recentlyOpened = getPreviouslyOpenedSymbolFiles(allSymbols); // Refresh from global state
 
 		// Read settings for max items per group (defaults to 10)

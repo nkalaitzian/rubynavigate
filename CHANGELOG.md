@@ -4,6 +4,16 @@
 ### Planned
 - Instance and class method lookup support
 
+## [0.0.11] - 2026-02-15
+
+### Added
+- Smart result sorting: exact matches first, followed by prefix matches, then substring matches
+- Shorter/closer matches prioritized within each match category
+- Comprehensive test suite for result ordering behavior
+- GitHub Actions workflows for automated testing before builds and releases
+  - Tests run on Node.js 18.x and 20.x
+  - Test dependency in build and publish workflows ensures quality gates
+
 ## [0.0.10] - 2026-02-15
 
 ### Added
