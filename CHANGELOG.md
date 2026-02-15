@@ -3,7 +3,14 @@
 
 ### Planned
 - Instance and class method lookup support
-- Scope lookup support
+
+## [0.0.8] - 2026-02-15
+
+### Added
+- Rails scope lookup support - search for scopes defined in classes (e.g., `User.active`)
+- Support for scopes in nested classes (e.g., `Admin::User.active_users`)
+- Namespace search with `.` separator (e.g., `User.` finds all scopes in User class)
+- Tests for scope parsing in various contexts
 
 ## [0.0.7] - 2026-02-15
 

@@ -126,4 +126,75 @@ suite('Ruby symbol detection', () => {
 		assert.ok(names.includes('TOP_LEVEL'));
 		assert.ok(names.includes('Foo'));
 	});
+
+	test('Finds Rails scopes in classes', () => {
+		const text = [
+			'class User < ApplicationRecord',
+			'  scope :active, -> { where(active: true) }',
+			'  scope :inactive, -> { where(active: false) }',
+			'end',
+			''
+		].join('\n');
+		const names = parseRubySymbolsFromText(text).map(symbol => symbol.name);
+		assert.ok(names.includes('User'));
+		assert.ok(names.includes('User.active'));
+		assert.ok(names.includes('User.inactive'));
+
+		// Verify matching with full qualified name
+		assert.strictEqual(matchesRubySymbol('User.active', 'User.active'), true);
+		assert.strictEqual(matchesRubySymbol('User.active', 'user.active'), true);
+		
+		// Verify matching with partial name
+		assert.strictEqual(matchesRubySymbol('User.active', 'active'), true);
+		assert.strictEqual(matchesRubySymbol('User.inactive', 'inactive'), true);
+		
+		// Verify matching with class prefix (finds all scopes)
+		assert.strictEqual(matchesRubySymbol('User.active', 'User.'), true);
+		assert.strictEqual(matchesRubySymbol('User.inactive', 'User.'), true);
+	});
+
+	test('Finds scopes in nested classes', () => {
+		const text = [
+			'module Admin',
+			'  class User < ApplicationRecord',
+			'    scope :admin_users, -> { where(role: "admin") }',
+			'    scope :regular_users, -> { where(role: "user") }',
+			'  end',
+			'end',
+			''
+		].join('\n');
+		const names = parseRubySymbolsFromText(text).map(symbol => symbol.name);
+		assert.ok(names.includes('Admin'));
+		assert.ok(names.includes('Admin::User'));
+		assert.ok(names.includes('Admin::User.admin_users'));
+		assert.ok(names.includes('Admin::User.regular_users'));
+
+		// Verify that Admin::User. finds all scopes
+		const userScopes = names.filter(name => matchesRubySymbol(name, 'Admin::User.'));
+		assert.ok(userScopes.includes('Admin::User.admin_users'));
+		assert.ok(userScopes.includes('Admin::User.regular_users'));
+		assert.strictEqual(userScopes.length, 2);
+	});
+
+	test('Finds mixed symbols: classes, constants, and scopes', () => {
+		const text = [
+			'class Post < ApplicationRecord',
+			'  STATUS = [:draft, :published].freeze',
+			'  scope :published, -> { where(status: :published) }',
+			'  scope :draft, -> { where(status: :draft) }',
+			'end',
+			''
+		].join('\n');
+		const names = parseRubySymbolsFromText(text).map(symbol => symbol.name);
+		assert.ok(names.includes('Post'));
+		assert.ok(names.includes('Post::STATUS'));
+		assert.ok(names.includes('Post.published'));
+		assert.ok(names.includes('Post.draft'));
+		
+		// Verify all symbols can be found with 'Post.'
+		const postScopes = names.filter(name => matchesRubySymbol(name, 'Post.'));
+		assert.ok(postScopes.includes('Post.published'));
+		assert.ok(postScopes.includes('Post.draft'));
+		assert.strictEqual(postScopes.length, 2); // Only scopes, not constants
+	});
 });

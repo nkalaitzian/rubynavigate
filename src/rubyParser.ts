@@ -8,6 +8,7 @@ export function parseRubySymbolsFromText(text: string): RubyParsedSymbol[] {
   const symbols: RubyParsedSymbol[] = [];
   const declRegex = /^\s*(class|module)\s+([A-Z][A-Za-z0-9]*(?:::[A-Z][A-Za-z0-9]*)*)/;
   const constantRegex = /^\s*([A-Z][A-Z0-9_]*)\s*=/;
+  const scopeRegex = /^\s*scope\s+:([a-z_][a-z0-9_]*)/i;
   const otherBlockRegex = /^\s*(def|if|unless|case|while|until|for|begin|do)\b/;
   const classShovelRegex = /^\s*class\s+<</;
   const endRegex = /^\s*end\b/;
@@ -54,6 +55,19 @@ export function parseRubySymbolsFromText(text: string): RubyParsedSymbol[] {
       const nameIndexInLine = constantMatch.index + constantMatch[0].indexOf(constantName);
       const nameIndex = offset + nameIndexInLine;
       symbols.push({ name: fullName, index: nameIndex, length: constantName.length });
+      offset += line.length + 1;
+      continue;
+    }
+
+    const scopeMatch = scopeRegex.exec(line);
+    if (scopeMatch) {
+      const scopeName = scopeMatch[1];
+      const currentNamespace = getCurrentNamespace(stack);
+      // Use . for scopes instead of :: (e.g., User.active instead of User::active)
+      const fullName = currentNamespace ? `${currentNamespace}.${scopeName}` : scopeName;
+      const nameIndexInLine = scopeMatch.index + scopeMatch[0].indexOf(scopeName);
+      const nameIndex = offset + nameIndexInLine;
+      symbols.push({ name: fullName, index: nameIndex, length: scopeName.length });
       offset += line.length + 1;
       continue;
     }
@@ -110,6 +124,14 @@ export function matchesRubySymbol(name: string, term: string): boolean {
     const nameLower = name.toLowerCase();
     // Match the namespace itself or anything starting with namespace::
     return nameLower === namespace || nameLower.startsWith(namespace + '::');
+  }
+
+  // Handle scope search (e.g., "Foo." should match "Foo.bar", "Foo.baz")
+  if (target.endsWith('.')) {
+    const namespace = target.slice(0, -1);
+    const nameLower = name.toLowerCase();
+    // Match anything starting with namespace.
+    return nameLower.startsWith(namespace + '.');
   }
   
   if (absoluteLookup) {
