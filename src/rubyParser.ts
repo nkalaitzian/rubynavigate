@@ -15,20 +15,35 @@ export function parseRubySymbolsFromText(text: string): RubyParsedSymbol[] {
 
   const lines = text.split(/\r?\n/);
   let offset = 0;
-  const stack: Array<{ type: 'class' | 'module' | 'other'; name?: string; absolute?: boolean }> = [];
+  const stack: Array<{ type: 'class' | 'module' | 'other'; name?: string; absolute?: boolean; symbolIndex?: number }> = [];
 
-  for (const line of lines) {
+  // Detect line ending type for correct offset calculation
+  const hasCRLF = text.includes('\r\n');
+  const lineEndingLength = hasCRLF ? 2 : 1;
+
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+    const isLastLine = i === lines.length - 1;
     if (endRegex.test(line)) {
       if (stack.length > 0) {
-        stack.pop();
+        const popped = stack.pop()!;
+        if (typeof popped.symbolIndex === 'number') {
+          const symIdx = popped.symbolIndex;
+          if (symbols[symIdx]) {
+            const symStart = symbols[symIdx].index;
+            const endIndex = offset + line.length;
+            const newLength = Math.max(symbols[symIdx].length, endIndex - symStart + (isLastLine ? 0 : lineEndingLength));
+            symbols[symIdx].length = newLength;
+          }
+        }
       }
-      offset += line.length + 1;
+      offset += line.length + (isLastLine ? 0 : lineEndingLength);
       continue;
     }
 
     if (classShovelRegex.test(line)) {
       stack.push({ type: 'other' });
-      offset += line.length + 1;
+      offset += line.length + (isLastLine ? 0 : lineEndingLength);
       continue;
     }
 
@@ -41,9 +56,19 @@ export function parseRubySymbolsFromText(text: string): RubyParsedSymbol[] {
       const fullName = [...prefix, rawName].join('::');
       const nameIndexInLine = declMatch.index + declMatch[0].lastIndexOf(rawName);
       const nameIndex = offset + nameIndexInLine;
+      const symbolIndex = symbols.length;
       symbols.push({ name: fullName, index: nameIndex, length: rawName.length });
-      stack.push({ type: kind, name: fullName, absolute: isQualified });
-      offset += line.length + 1;
+      // If the declaration and its `end` are on the same line (one-liner), expand the symbol
+      // to cover the whole line and do not push it on the stack.
+      const afterDecl = line.slice(declMatch.index + declMatch[0].length);
+      if (/\bend\b/.test(afterDecl)) {
+        // Cover until end of current line so caret anywhere on the line matches
+        const newLength = line.length - nameIndexInLine + (isLastLine ? 0 : lineEndingLength);
+        symbols[symbolIndex].length = Math.max(symbols[symbolIndex].length, newLength);
+      } else {
+        stack.push({ type: kind, name: fullName, absolute: isQualified, symbolIndex });
+      }
+      offset += line.length + (isLastLine ? 0 : lineEndingLength);
       continue;
     }
 
@@ -55,7 +80,7 @@ export function parseRubySymbolsFromText(text: string): RubyParsedSymbol[] {
       const nameIndexInLine = constantMatch.index + constantMatch[0].indexOf(constantName);
       const nameIndex = offset + nameIndexInLine;
       symbols.push({ name: fullName, index: nameIndex, length: constantName.length });
-      offset += line.length + 1;
+      offset += line.length + (isLastLine ? 0 : lineEndingLength);
       continue;
     }
 
@@ -68,7 +93,99 @@ export function parseRubySymbolsFromText(text: string): RubyParsedSymbol[] {
       const nameIndexInLine = scopeMatch.index + scopeMatch[0].indexOf(scopeName);
       const nameIndex = offset + nameIndexInLine;
       symbols.push({ name: fullName, index: nameIndex, length: scopeName.length });
-      offset += line.length + 1;
+      // Scope definitions can open a block with `do` and are closed by `end`.
+      // Track that block so its `end` does not accidentally close class/module scope.
+      if (/\bdo\b/.test(line)) {
+        stack.push({ type: 'other' });
+      }
+      offset += line.length + (isLastLine ? 0 : lineEndingLength);
+      continue;
+    }
+
+    // Detect explicit receiver singleton methods: `def User.admins` or `def Foo::Bar.baz`
+    const receiverMethodRegex = /^\s*def\s+([A-Z][A-Za-z0-9_:]*)\.([a-zA-Z_][a-zA-Z0-9_]*[!?=]?)/;
+    const receiverMethodMatch = receiverMethodRegex.exec(line);
+    if (receiverMethodMatch) {
+      const receiver = receiverMethodMatch[1];
+      const methodName = receiverMethodMatch[2];
+      // Use the receiver exactly as written (supports :: qualified names)
+      const fullName = `${receiver}.${methodName}`;
+      // Capture entire definition from 'def' to end of method name
+      const defStartIndex = receiverMethodMatch.index;
+      const nameIndex = offset + defStartIndex;
+      const entireDefLength = receiverMethodMatch[0].length;
+      const symbolIndex = symbols.length;
+      symbols.push({ name: fullName, index: nameIndex, length: entireDefLength });
+      // If the method definition contains its `end` on the same line (one-liner), expand
+      // the symbol to cover the whole line and do not push it on the stack.
+      const afterDef = line.slice(receiverMethodMatch.index + receiverMethodMatch[0].length);
+      if (/\bend\b/.test(afterDef)) {
+        const newLength = line.length - receiverMethodMatch.index + (isLastLine ? 0 : lineEndingLength);
+        symbols[symbolIndex].length = Math.max(symbols[symbolIndex].length, newLength);
+      } else {
+        // Treat method body as block so its `end` doesn't close the containing class/module
+        stack.push({ type: 'other', symbolIndex });
+      }
+      offset += line.length + (isLastLine ? 0 : lineEndingLength);
+      continue;
+    }
+
+      // Detect class (singleton) methods: `def self.method_name` -> User.method_name
+      const classMethodRegex = /^\s*def\s+self\.([a-zA-Z_][a-zA-Z0-9_]*[!?=]?)/;
+      const classMethodMatch = classMethodRegex.exec(line);
+      if (classMethodMatch) {
+        const methodName = classMethodMatch[1];
+        const currentNamespace = getCurrentNamespace(stack);
+        const fullName = currentNamespace ? `${currentNamespace}.${methodName}` : methodName;
+        // Capture entire definition from 'def' to end of method name
+        const defStartIndex = classMethodMatch.index;
+        const nameIndex = offset + defStartIndex;
+        const entireDefLength = classMethodMatch[0].length;
+        const symbolIndex = symbols.length;
+        symbols.push({ name: fullName, index: nameIndex, length: entireDefLength });
+          // If the method definition is a one-liner, expand to cover the whole line and skip stacking
+          const afterDef = line.slice(classMethodMatch.index + classMethodMatch[0].length);
+          if (/\bend\b/.test(afterDef)) {
+            const newLength = line.length - classMethodMatch.index + (isLastLine ? 0 : lineEndingLength);
+            symbols[symbolIndex].length = Math.max(symbols[symbolIndex].length, newLength);
+          } else {
+            // Treat method body as a block so its closing `end` won't close the containing class/module
+            stack.push({ type: 'other', symbolIndex });
+          }
+        offset += line.length + (isLastLine ? 0 : lineEndingLength);
+        continue;
+      }
+
+      // Detect instance methods: `def method_name` -> User#method_name
+      const instanceMethodRegex = /^\s*def\s+([a-zA-Z_][a-zA-Z0-9_]*[!?=]?)/;
+      const instanceMethodMatch = instanceMethodRegex.exec(line);
+      if (instanceMethodMatch) {
+        const methodName = instanceMethodMatch[1];
+        const currentNamespace = getCurrentNamespace(stack);
+        const fullName = currentNamespace ? `${currentNamespace}#${methodName}` : methodName;
+        // Capture entire definition from 'def' to end of method name
+        const defStartIndex = instanceMethodMatch.index;
+        const nameIndex = offset + defStartIndex;
+        const entireDefLength = instanceMethodMatch[0].length;
+        const symbolIndex = symbols.length;
+        symbols.push({ name: fullName, index: nameIndex, length: entireDefLength });
+          // If the instance method is a one-liner, expand to cover the whole line and skip stacking
+          const afterDef = line.slice(instanceMethodMatch.index + instanceMethodMatch[0].length);
+          if (/\bend\b/.test(afterDef)) {
+            const newLength = line.length - instanceMethodMatch.index + (isLastLine ? 0 : lineEndingLength);
+            symbols[symbolIndex].length = Math.max(symbols[symbolIndex].length, newLength);
+          } else {
+            stack.push({ type: 'other', symbolIndex });
+          }
+        offset += line.length + (isLastLine ? 0 : lineEndingLength);
+        continue;
+      }
+
+    // Generic Ruby do/end block tracking (e.g., `included do`)
+    // so closing `end` does not accidentally pop class/module scope.
+    if (/\bdo\b/.test(line) && !/\bend\b/.test(line)) {
+      stack.push({ type: 'other' });
+      offset += line.length + (isLastLine ? 0 : lineEndingLength);
       continue;
     }
 
@@ -76,7 +193,7 @@ export function parseRubySymbolsFromText(text: string): RubyParsedSymbol[] {
       stack.push({ type: 'other' });
     }
 
-    offset += line.length + 1;
+    offset += line.length + (isLastLine ? 0 : lineEndingLength);
   }
 
   return symbols;

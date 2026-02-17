@@ -81,10 +81,22 @@ Tests call **real implementation functions** (not mocks) to ensure correctness a
 - `rubynavigate.excludeDirectories` (default: `["node_modules", ".git", "vendor", "tmp", "dist", "out"]`) - Scan exclusions
 
 ### Extension Points
-- Commands: `rubynavigate.find`, `rubynavigate.previewActive`, `rubynavigate.openInBackground`
+- Commands: `rubynavigate.find`, `rubynavigate.previewActive`, `rubynavigate.openInBackground`, `rubynavigate.copyQualifiedName`
 - Keybindings via `keybindings.json` (documented in README)
 
 ## Common Extension Tasks & Implementation Notes
+
+### Copy Qualified Name Feature
+The `rubynavigate.copyQualifiedName` command allows users to copy the fully qualified name of a symbol at the cursor position to clipboard:
+- **Class/Module**: `User::Admin` (format: `::` separator)
+- **Constant**: `User::Admin::MAX_USERS` (format: `::` separator)
+- **Rails Scope/Class Method**: `User.active_users` (format: `.` separator for distinguishing from namespaces)
+- **Instance Method**: `User#authenticate` (format: `#` separator)
+
+Implementation in `extension.ts`:
+- `copyQualifiedNameAtCaret()` finds the symbol at cursor using range containment checks
+- Prefers most specific (smallest) symbol if cursor is in nested context
+- Uses `env.clipboard.writeText()` to copy; no special formatting needed as parser already handles correct naming format
 
 ### Adding a New Symbol Type (e.g., methods)
 1. Add regex pattern in `parseRubySymbolsFromText()` (e.g., `def methodName`)

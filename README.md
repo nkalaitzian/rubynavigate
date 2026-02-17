@@ -4,7 +4,7 @@
   <img src="logo.png" alt="RubyNavigate Logo" width="320" />
 </p>
 
-Quickly jump to Ruby classes, modules, constants, and Rails scopes by their fully qualified names. Perfect for navigating large Ruby projects with deeply nested class hierarchies.
+Quickly jump to Ruby classes, modules, constants, Rails scopes, and methods by their fully qualified names. Perfect for navigating large Ruby projects with deeply nested class hierarchies.
 
 ## Features
 
@@ -12,6 +12,7 @@ Quickly jump to Ruby classes, modules, constants, and Rails scopes by their full
 - **Fully Qualified Names**: Support for nested modules and qualified class names (e.g., `Foo::Bar::Baz`)
 - **Constant Lookup**: Search for Ruby constants defined in classes and modules (e.g., `Foo::BAR`)
 - **Rails Scope Lookup**: Search for ActiveRecord scopes defined in your models (e.g., `User.active`)
+- **Method Lookup**: Search for class/singleton methods and instance methods (e.g., `User.active` and `User#authenticate`)
 - **Smart Result Ordering**: Exact matches first, then prefix matches, then substring matches
   - Within each category, closer/shorter matches are prioritized
   - Search for `User::Admin` shows `User::Admin` → `User::AdminB` → `User::Administrator`
@@ -30,10 +31,6 @@ Quickly jump to Ruby classes, modules, constants, and Rails scopes by their full
   - Picker opens immediately while symbols load
 - **Workspace Scanning**: Automatically discovers Ruby files in your project
 
-## Upcoming Features
-
-- **Method Lookup**: Search for instance methods and class methods
-
 ## Usage
 
 1. Open the command palette (`Ctrl+Shift+P` / `Cmd+Shift+P`)
@@ -45,6 +42,24 @@ Quickly jump to Ruby classes, modules, constants, and Rails scopes by their full
    - **Ctrl+Right Arrow**: Open in background (without closing the picker or taking focus)
    - **X button** (on recently opened items): Remove from history
    - Prefix your query with `::` to constrain the search to root-level symbols (e.g., `::Foo::Bar` will ignore `Baz::Foo::Bar`).
+
+### Copy Qualified Name
+
+You can quickly copy the fully qualified name of any Ruby symbol to your clipboard:
+
+1. Place your cursor inside a Ruby class, module, constant, method, or scope
+2. Open the command palette (`Ctrl+Shift+P` / `Cmd+Shift+P`)
+3. Run: **RubyNavigate: Copy Qualified Name to Clipboard**
+4. The fully qualified name will be copied with the appropriate format:
+   - **Class/Module**: `User::Admin`
+   - **Constant**: `User::Admin::MAX_USERS`
+   - **Scope/Class Method**: `User.active` (dot notation)
+   - **Instance Method**: `User#authenticate` (hash notation)
+
+Copy behavior details:
+- Works from active-file parsing even while background indexing is still running
+- Handles one-line definitions (for example, `def self.test; true; end`)
+- Preserves namespace through common block structures such as `scope ... do ... end` and `included do ... end`
 
 ## Keyboard Shortcuts
 
@@ -62,6 +77,10 @@ Alternatively, you can manually add this to your `keybindings.json`:
 {
   "key": "ctrl+shift+/",
   "command": "rubynavigate.find"
+},
+{
+  "key": "ctrl+alt+c",
+  "command": "rubynavigate.copyQualifiedName"
 }
 ```
 

@@ -37,6 +37,10 @@
       {
         "command": "rubynavigate.previewActive",
         "title": "RubyNavigate: Preview Active Selection"
+      },
+      {
+        "command": "rubynavigate.copyQualifiedName",
+        "title": "RubyNavigate: Copy Qualified Name to Clipboard"
       }
     ],
     "configuration": {

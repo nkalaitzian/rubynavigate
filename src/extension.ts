@@ -1,6 +1,6 @@
-import { window, commands, ExtensionContext, workspace, Range, Selection, TextEditorRevealType, Uri, QuickPickItem, QuickPick, QuickPickItemKind, ThemeIcon, ProgressLocation } from 'vscode';
+import { window, commands, ExtensionContext, workspace, Range, Selection, TextEditorRevealType, Uri, QuickPickItem, QuickPick, QuickPickItemKind, ThemeIcon, ProgressLocation, env } from 'vscode';
 import { listRubySymbols, RubySymbol, setSymbolCache } from './rubyLocator';
-import { matchesRubySymbol, compareMatches, isClassOrModule } from './rubyParser';
+import { matchesRubySymbol, compareMatches, isClassOrModule, parseRubySymbolsFromText } from './rubyParser';
 import { SymbolCache } from './symbolCache';
 
 let extensionContext: ExtensionContext;
@@ -69,6 +69,74 @@ export function activate(context: ExtensionContext) {
 			}
 		}
 	}));
+
+	// Command to copy fully qualified name of symbol at caret to clipboard
+	context.subscriptions.push(commands.registerCommand('rubynavigate.copyQualifiedName', async () => {
+		await copyQualifiedNameAtCaret();
+	}));
+}
+
+async function copyQualifiedNameAtCaret() {
+	const editor = window.activeTextEditor;
+	if (!editor || !editor.document.fileName.endsWith('.rb')) {
+		window.showWarningMessage('RubyNavigate: No active Ruby file');
+		return;
+	}
+
+	const caretPos = editor.selection.active;
+	// Parse the active file first to ensure fully-qualified names reflect its namespace
+	const text = editor.document.getText();
+	const parsed = parseRubySymbolsFromText(text);
+	let currentFileSymbols: RubySymbol[] = parsed.map(entry => {
+		const start = editor.document.positionAt(entry.index);
+		const end = editor.document.positionAt(entry.index + entry.length);
+		return { name: entry.name, uri: editor.document.uri, range: new Range(start, end) };
+	});
+
+	// If parsing didn't find any symbol (edge-case), fall back to cache for this file
+	if (currentFileSymbols.length === 0) {
+		const allSymbols = await listRubySymbols();
+		currentFileSymbols = allSymbols.filter(s => s.uri.fsPath === editor.document.uri.fsPath);
+	}
+	
+	// Find the symbol that contains the caret line (line-based matching)
+	const caretLine = caretPos.line;
+	let matchedSymbol: RubySymbol | undefined;
+	for (const symbol of currentFileSymbols) {
+		if (!symbol.range) { continue; }
+		const startLine = symbol.range.start.line;
+		const endLine = symbol.range.end.line;
+		if (caretLine >= startLine && caretLine <= endLine) {
+			// prefer the most specific (smallest span)
+			const span = endLine - startLine;
+			if (!matchedSymbol) {
+				matchedSymbol = symbol;
+			} else {
+				const bestSpan = matchedSymbol.range!.end.line - matchedSymbol.range!.start.line;
+				if (span < bestSpan) { matchedSymbol = symbol; }
+			}
+		}
+	}
+
+	if (!matchedSymbol) {
+		// As a last resort try global cache (other indexing strategies)
+		const allSymbols = await listRubySymbols();
+		for (const symbol of allSymbols) {
+			if (symbol.uri.fsPath === editor.document.uri.fsPath && symbol.range && symbol.range.contains(caretPos)) {
+				matchedSymbol = symbol;
+				break;
+			}
+		}
+
+		if (!matchedSymbol) {
+			window.showWarningMessage('RubyNavigate: No symbol found at cursor position');
+			return;
+		}
+	}
+
+	// Copy the qualified name to clipboard
+	await env.clipboard.writeText(matchedSymbol.name);
+	window.showInformationMessage(`RubyNavigate: Copied "${matchedSymbol.name}" to clipboard`);
 }
 
 export function deactivate() { }

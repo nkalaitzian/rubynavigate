@@ -14,6 +14,72 @@ suite('Ruby symbol detection', () => {
 		assert.strictEqual(matchesRubySymbol('Foo', 'Fpp'), false);
 	});
 
+	test('Finds instance and class methods', () => {
+		const text = [
+			'class User',
+			'  def admin?',
+			'    true',
+			'  end',
+			'',
+			'  def self.admins',
+			'    where(admin: true)',
+			'  end',
+			'end',
+			''
+		].join('\n');
+		const names = parseRubySymbolsFromText(text).map(s => s.name);
+		assert.ok(names.includes('User#admin?'));
+		assert.ok(names.includes('User.admins'));
+
+		// Matching behavior
+		assert.strictEqual(matchesRubySymbol('User#admin?', 'admin?'), true);
+		assert.strictEqual(matchesRubySymbol('User.admins', 'admins'), true);
+	});
+
+	test('Finds receiver singleton methods (def Receiver.method)', () => {
+		const text = [
+			'class User',
+			'  def User.admins',
+			'    where(admin: true)',
+			'  end',
+			'end',
+			''
+		].join('\n');
+		const names = parseRubySymbolsFromText(text).map(s => s.name);
+		assert.ok(names.includes('User'));
+		assert.ok(names.includes('User.admins'));
+		// Also ensure matching works
+		assert.strictEqual(matchesRubySymbol('User.admins', 'admins'), true);
+	});
+
+	test('Method symbol ranges cover entire definition', () => {
+		const text = [
+			'class Meme',
+			'  def self.test',
+			'    true',
+			'  end',
+			'end',
+			''
+		].join('\n');
+		const symbols = parseRubySymbolsFromText(text);
+		const testMethod = symbols.find(s => s.name === 'Meme.test');
+		
+		assert.ok(testMethod, 'Should find Meme.test');
+		
+		// Calculate line positions: 
+		// Line 0: "class Meme\n" = 11 chars
+		// Line 1: "  def self.test\n" starts at offset 11
+		const line1Start = 11;
+		const expectedIndex = line1Start + 2; // '  def self.test' - starts at the 'd' in 'def'
+		
+		// The symbol should start at the beginning of 'def'
+		assert.ok(testMethod!.index >= line1Start && testMethod!.index <= line1Start + 2, 
+			`Symbol index ${testMethod!.index} should be around ${line1Start} to ${line1Start + 2}`);
+		
+		// The length should cover 'def self.test' (13 chars)
+		assert.ok(testMethod!.length >= 13, `Symbol length ${testMethod!.length} should be at least 13 chars`);
+	});
+
 	test('Finds nested classes in a module', () => {
 		const text = [
 			'module Foo',
@@ -313,4 +379,60 @@ suite('Ruby symbol detection', () => {
 		const expected = ['Post.draft', 'Post.recent', 'Post.active', 'Post.pending', 'Post.archived', 'Post.featured', 'Post.published'];
 		assert.deepStrictEqual(matches, expected);
 	});
+});
+
+test('Handles one-line method definitions', () => {
+	const text = [
+ 		'class Meme',
+ 		'  def self.test; true; end',
+ 		'end',
+ 		''
+ 	].join('\n');
+ 	const names = parseRubySymbolsFromText(text).map(s => s.name);
+ 	assert.ok(names.includes('Meme.test'));
+});
+
+test('Keeps class namespace after scope do/end blocks', () => {
+	const text = [
+		'class Meme < ApplicationRecord',
+		'  scope :public_memes, -> (current_user) do',
+		'    if current_user.present?',
+		'      where(public: true).or(where(user: current_user))',
+		'    else',
+		'      where(public: true)',
+		'    end',
+		'  end',
+		'',
+		'  def self.test',
+		'    true',
+		'  end',
+		'end',
+		''
+	].join('\n');
+
+	const names = parseRubySymbolsFromText(text).map(s => s.name);
+	assert.ok(names.includes('Meme.public_memes'));
+	assert.ok(names.includes('Meme.test'));
+	assert.ok(!names.includes('test'));
+});
+
+test('Keeps module namespace after included do/end for instance methods', () => {
+	const text = [
+		'module User::Authorization',
+		'  extend ActiveSupport::Concern',
+		'',
+		'  included do',
+		'    has_many :user_roles',
+		'  end',
+		'',
+		'  def admin?',
+		'    role_codes.include?(Role::ADMIN)',
+		'  end',
+		'end',
+		''
+	].join('\n');
+
+	const names = parseRubySymbolsFromText(text).map(s => s.name);
+	assert.ok(names.includes('User::Authorization#admin?'));
+	assert.ok(!names.includes('admin?'));
 });

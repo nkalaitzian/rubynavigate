@@ -1,8 +1,21 @@
 # Change Log
 ## [Unreleased]
 
-### Planned
-- Instance and class method lookup support
+### Added
+- Method symbol parsing for:
+  - Instance methods (e.g., `User#admin?`)
+  - Class/singleton methods (e.g., `User.admins` from `def self.admins`)
+  - Receiver singleton methods (e.g., `User.admins` from `def User.admins`)
+- `RubyNavigate: Copy Qualified Name to Clipboard` command to copy fully qualified names at cursor position
+
+### Changed
+- Symbol ranges now expand to cover full class/module/method blocks, improving line-based symbol detection
+- Parser now tracks one-line definitions and common `do ... end` block patterns more accurately
+
+### Fixed
+- Qualified-name copy now prefers active-file parsing so it works before cache/index completion
+- Namespace preservation through `scope ... do ... end` blocks
+- Namespace preservation through `included do ... end` blocks (ActiveSupport::Concern patterns)
 
 ## [0.0.13] - 2026-02-17
 
