@@ -1,6 +1,6 @@
 import { window, commands, ExtensionContext, workspace, Range, Selection, TextEditorRevealType, Uri, QuickPickItem, QuickPick, QuickPickItemKind, ThemeIcon, ProgressLocation } from 'vscode';
 import { listRubySymbols, RubySymbol, setSymbolCache } from './rubyLocator';
-import { matchesRubySymbol, compareMatches } from './rubyParser';
+import { matchesRubySymbol, compareMatches, isClassOrModule } from './rubyParser';
 import { SymbolCache } from './symbolCache';
 
 let extensionContext: ExtensionContext;
@@ -102,6 +102,14 @@ async function previewRubyLocation(match: { uri: Uri; range?: Range }) {
 
 type RubyPickItem = QuickPickItem & { symbol?: RubySymbol };
 
+/**
+ * Check if a symbol is a class or module (not a scope or constant)
+ * - Scopes contain a dot: User.active
+ * - Constants contain :: with UPPERCASE suffix: Foo::BAR
+ * - Classes/modules: Foo or Foo::Bar (normal capitalization)
+ */
+
+
 function getCurrentlyOpenSymbolFiles(allSymbols: RubySymbol[]): Set<string> {
 	const openRubyFiles = new Set<string>();
 
@@ -172,7 +180,13 @@ async function showRubySymbolPicker() {
 	let currentlyOpen: Set<string> = new Set();
 
 	const updateItems = (value: string) => {
-		const filtered = allSymbols.filter(symbol => matchesRubySymbol(symbol.name, value));
+		let filtered = allSymbols.filter(symbol => matchesRubySymbol(symbol.name, value));
+		
+		// When search term is empty, only show classes/modules (not scopes or constants)
+		// This makes the picker less cluttered and more focused on navigation
+		if (value.trim().length === 0) {
+			filtered = filtered.filter(symbol => isClassOrModule(symbol.name));
+		}
 		
 		// Sort filtered results by match quality (best matches first)
 		filtered.sort((a, b) => compareMatches(a.name, b.name, value));

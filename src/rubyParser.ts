@@ -189,3 +189,21 @@ export function compareMatches(nameA: string, nameB: string, searchTerm: string)
   // No match (shouldn't happen)
   return 0;
 }
+
+export function isClassOrModule(symbolName: string): boolean {
+	// Scopes always contain a dot
+	if (symbolName.includes('.')) {
+		return false;
+	}
+
+	// Check if it's a constant (ends with UPPERCASE after ::)
+	const parts = symbolName.split('::');
+	const lastPart = parts[parts.length - 1];
+	// If last part is all uppercase, it's a constant
+	if (lastPart === lastPart.toUpperCase() && lastPart.length > 0 && /[A-Z]/.test(lastPart)) {
+		return false;
+	}
+
+	// Otherwise it's a class or module
+	return true;
+}

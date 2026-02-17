@@ -4,6 +4,15 @@
 ### Planned
 - Instance and class method lookup support
 
+## [0.0.13] - 2026-02-17
+
+### Changed
+- Refactored test suite to eliminate logic duplication
+- Tests now call actual code functions instead of reimplementing logic
+  - `isClassOrModule()` now moved to rubyParser.ts and exported for testing
+  - Symbol filtering tests use real `isClassOrModule()`, `matchesRubySymbol()`, and `compareMatches()` functions
+  - Ensures tests fail if implementation changes, improving test reliability
+
 ## [0.0.12] - 2026-02-15
 
 ### Added
