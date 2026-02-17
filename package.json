@@ -2,7 +2,7 @@
   "name": "rubynavigate",
   "displayName": "RubyNavigate",
   "description": "Navigate Ruby projects with ease - quickly jump to classes and modules using fuzzy search and fully qualified names",
-  "version": "0.0.13",
+  "version": "0.0.14",
   "publisher": "pastouris",
   "icon": "logo.png",
   "license": "GPL-3.0",

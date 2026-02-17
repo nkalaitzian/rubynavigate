@@ -1,6 +1,8 @@
 # Change Log
 ## [Unreleased]
 
+## [0.0.14] - 2026-02-17
+
 ### Added
 - Method symbol parsing for:
   - Instance methods (e.g., `User#admin?`)
