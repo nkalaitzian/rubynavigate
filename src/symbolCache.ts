@@ -5,7 +5,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 
 interface CachedFileEntry {
-	symbols: Array<{ name: string; range: { start: { line: number; character: number }; end: { line: number; character: number } } }>;
+	symbols: Array<{ name: string; range: { start: { line: number; character: number }; end: { line: number; character: number } }; isPrivate?: boolean }>;
 	mtime: number;
 }
 
@@ -102,6 +102,7 @@ export class SymbolCache {
 							.filter(sym => sym.range !== undefined)
 							.map(sym => ({
 								name: sym.name,
+								isPrivate: sym.isPrivate,
 								range: {
 									start: { line: sym.range!.start.line, character: sym.range!.start.character },
 									end: { line: sym.range!.end.line, character: sym.range!.end.character }
@@ -280,7 +281,7 @@ export class SymbolCache {
 			const symbols: RubySymbol[] = parsed.map(entry => {
 				const start = document.positionAt(entry.index);
 				const end = document.positionAt(entry.index + entry.length);
-				return { name: entry.name, uri, range: new Range(start, end) };
+			return { name: entry.name, uri, range: new Range(start, end), isPrivate: entry.isPrivate };
 			});
 			this.cache.set(uri.fsPath, symbols);
 			this.fileModTimes.set(uri.fsPath, stat.mtimeMs);
@@ -511,14 +512,13 @@ export class SymbolCache {
 				return;
 			}
 
-			// File is new or has changed, parse it
 			const document = await workspace.openTextDocument(uri);
 			const text = document.getText();
 			const parsed = parseRubySymbolsFromText(text);
 			const symbols: RubySymbol[] = parsed.map(entry => {
 				const start = document.positionAt(entry.index);
 				const end = document.positionAt(entry.index + entry.length);
-				return { name: entry.name, uri, range: new Range(start, end) };
+				return { name: entry.name, uri, range: new Range(start, end), isPrivate: entry.isPrivate };
 			});
 			this.cache.set(uri.fsPath, symbols);
 			this.fileModTimes.set(uri.fsPath, currentMtime);
@@ -536,7 +536,7 @@ export class SymbolCache {
 			const symbols: RubySymbol[] = parsed.map(entry => {
 				const start = document.positionAt(entry.index);
 				const end = document.positionAt(entry.index + entry.length);
-				return { name: entry.name, uri, range: new Range(start, end) };
+			return { name: entry.name, uri, range: new Range(start, end), isPrivate: entry.isPrivate };
 			});
 			this.cache.set(uri.fsPath, symbols);
 			this.fileModTimes.set(uri.fsPath, stat.mtimeMs);

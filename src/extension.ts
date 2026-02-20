@@ -290,7 +290,11 @@ async function showRubySymbolPicker() {
 		// When search term is empty, only show classes/modules (not scopes or constants)
 		// This makes the picker less cluttered and more focused on navigation
 		if (value.trim().length === 0) {
-			filtered = filtered.filter(symbol => isClassOrModule(symbol.name));
+			filtered = filtered.filter(symbol => isClassOrModule(symbol.name) && !symbol.isPrivate);
+		} else {
+			// When searching, still exclude private methods to keep results clean
+			// (users searching for private methods can explicitly search for them)
+			filtered = filtered.filter(symbol => !symbol.isPrivate);
 		}
 		
 		// Sort filtered results by match quality (best matches first)

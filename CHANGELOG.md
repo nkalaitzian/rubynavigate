@@ -1,6 +1,17 @@
 # Change Log
 ## [Unreleased]
 
+## [0.0.16] - 2026-02-20
+
+### Added
+- **Private Method Support**: Detection and filtering of Ruby private methods
+  - Private methods are identified during parsing via the `private` keyword
+  - By default, private methods are excluded from picker results to keep navigation focused
+  - When search is empty, only classes/modules are shown (no private methods)
+  - When actively searching, private methods are hidden from results
+  - Users can still search explicitly for private methods if they contain relevant keywords elsewhere
+  - Improves noise reduction in picker, making it easier to navigate public APIs
+
 ## [0.0.15] - 2026-02-20
 
 ### Added

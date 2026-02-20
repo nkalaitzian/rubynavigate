@@ -13,6 +13,7 @@ Quickly jump to Ruby classes, modules, constants, Rails scopes, and methods by t
 - **Constant Lookup**: Search for Ruby constants defined in classes and modules (e.g., `Foo::BAR`)
 - **Rails Scope Lookup**: Search for ActiveRecord scopes defined in your models (e.g., `User.active`)
 - **Method Lookup**: Search for class/singleton methods and instance methods (e.g., `User.active` and `User#authenticate`)
+- **Private Method Filtering**: Private methods are automatically excluded from picker results to keep navigation clean and focused on public APIs
 - **Smart Result Ordering**: Exact matches first, then prefix matches, then substring matches
   - Within each category, closer/shorter matches are prioritized
   - Search for `User::Admin` shows `User::Admin` → `User::AdminB` → `User::Administrator`
@@ -143,6 +144,9 @@ app/models/
   user.rb          # class User < ApplicationRecord
                    #   STATUS = [:active, :inactive].freeze
                    #   scope :active, -> { where(status: :active) }
+                   #   def authenticate(password)
+                   #   private
+                   #   def hash_password
   admin/
     panel.rb       # module Admin; class Panel; end
 lib/
@@ -155,7 +159,9 @@ You can search for:
 - `User::STATUS` - Finds the STATUS constant in the User class
 - `User.active` - Finds the active scope in the User class
 - `User.` - Finds all scopes defined in User class
+- `User#auth` - Finds the public `authenticate` method
 - `Admin::Panel` - Finds the Panel class nested in Admin module
 - `Utils::Helper` - Finds the Helper class in Utils module
 - `Panel` - Partial match also works (case-insensitive)
 - `Ad` - Prefix matching to find Admin module classes
+- **Note**: Private methods like `User#hash_password` are excluded from default picker results to keep navigation focused on public APIs. You can still find them by explicitly searching for relevant keywords.

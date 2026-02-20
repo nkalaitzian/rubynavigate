@@ -2,6 +2,7 @@ export type RubyParsedSymbol = {
   name: string;
   index: number;
   length: number;
+  isPrivate?: boolean;
 };
 
 export function parseRubySymbolsFromText(text: string): RubyParsedSymbol[] {
@@ -11,11 +12,11 @@ export function parseRubySymbolsFromText(text: string): RubyParsedSymbol[] {
   const scopeRegex = /^\s*scope\s+:([a-z_][a-z0-9_]*)/i;
   const otherBlockRegex = /^\s*(def|if|unless|case|while|until|for|begin|do)\b/;
   const classShovelRegex = /^\s*class\s+<</;
-  const endRegex = /^\s*end\b/;
-
+  const endRegex = /^\s*end\b/;  const privacyRegex = /^\s*(private|protected|public)\b/;
   const lines = text.split(/\r?\n/);
   let offset = 0;
-  const stack: Array<{ type: 'class' | 'module' | 'other'; name?: string; absolute?: boolean; symbolIndex?: number }> = [];
+  const stack: Array<{ type: 'class' | 'module' | 'other'; name?: string; absolute?: boolean; symbolIndex?: number; isPrivate?: boolean }> = [];
+  let isCurrentlyPrivate = false;
 
   // Detect line ending type for correct offset calculation
   const hasCRLF = text.includes('\r\n');
@@ -24,9 +25,22 @@ export function parseRubySymbolsFromText(text: string): RubyParsedSymbol[] {
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i];
     const isLastLine = i === lines.length - 1;
+    
+    // Check for privacy modifier keyword
+    const privacyMatch = privacyRegex.exec(line);
+    if (privacyMatch && stack.some(s => s.type === 'class' || s.type === 'module')) {
+      const privacyKeyword = privacyMatch[1];
+      isCurrentlyPrivate = privacyKeyword === 'private';
+      offset += line.length + (isLastLine ? 0 : lineEndingLength);
+      continue;
+    }
+    
     if (endRegex.test(line)) {
       if (stack.length > 0) {
         const popped = stack.pop()!;
+        if (popped.type === 'class' || popped.type === 'module') {
+          isCurrentlyPrivate = false; // Reset privacy when exiting class/module
+        }
         if (typeof popped.symbolIndex === 'number') {
           const symIdx = popped.symbolIndex;
           if (symbols[symIdx]) {
@@ -66,7 +80,8 @@ export function parseRubySymbolsFromText(text: string): RubyParsedSymbol[] {
         const newLength = line.length - nameIndexInLine + (isLastLine ? 0 : lineEndingLength);
         symbols[symbolIndex].length = Math.max(symbols[symbolIndex].length, newLength);
       } else {
-        stack.push({ type: kind, name: fullName, absolute: isQualified, symbolIndex });
+        stack.push({ type: kind, name: fullName, absolute: isQualified, symbolIndex, isPrivate: false });
+        isCurrentlyPrivate = false; // Reset privacy when entering a new class/module
       }
       offset += line.length + (isLastLine ? 0 : lineEndingLength);
       continue;
@@ -115,7 +130,7 @@ export function parseRubySymbolsFromText(text: string): RubyParsedSymbol[] {
       const nameIndex = offset + defStartIndex;
       const entireDefLength = receiverMethodMatch[0].length;
       const symbolIndex = symbols.length;
-      symbols.push({ name: fullName, index: nameIndex, length: entireDefLength });
+      symbols.push({ name: fullName, index: nameIndex, length: entireDefLength, isPrivate: isCurrentlyPrivate });
       // If the method definition contains its `end` on the same line (one-liner), expand
       // the symbol to cover the whole line and do not push it on the stack.
       const afterDef = line.slice(receiverMethodMatch.index + receiverMethodMatch[0].length);
@@ -142,7 +157,7 @@ export function parseRubySymbolsFromText(text: string): RubyParsedSymbol[] {
         const nameIndex = offset + defStartIndex;
         const entireDefLength = classMethodMatch[0].length;
         const symbolIndex = symbols.length;
-        symbols.push({ name: fullName, index: nameIndex, length: entireDefLength });
+        symbols.push({ name: fullName, index: nameIndex, length: entireDefLength, isPrivate: isCurrentlyPrivate });
           // If the method definition is a one-liner, expand to cover the whole line and skip stacking
           const afterDef = line.slice(classMethodMatch.index + classMethodMatch[0].length);
           if (/\bend\b/.test(afterDef)) {
@@ -168,7 +183,7 @@ export function parseRubySymbolsFromText(text: string): RubyParsedSymbol[] {
         const nameIndex = offset + defStartIndex;
         const entireDefLength = instanceMethodMatch[0].length;
         const symbolIndex = symbols.length;
-        symbols.push({ name: fullName, index: nameIndex, length: entireDefLength });
+        symbols.push({ name: fullName, index: nameIndex, length: entireDefLength, isPrivate: isCurrentlyPrivate });
           // If the instance method is a one-liner, expand to cover the whole line and skip stacking
           const afterDef = line.slice(instanceMethodMatch.index + instanceMethodMatch[0].length);
           if (/\bend\b/.test(afterDef)) {

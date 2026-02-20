@@ -24,6 +24,7 @@ export type RubyLocation = {
 
 export type RubySymbol = RubyLocation & {
   name: string;
+  isPrivate?: boolean;
 };
 
 
