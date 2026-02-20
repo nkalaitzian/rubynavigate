@@ -3,6 +3,22 @@
 
 ## [0.0.15] - 2026-02-20
 
+### Added
+- **Disk Cache Persistence**: Symbol cache is now persisted to disk, enabling near-instant loading on subsequent VS Code restarts
+  - Only files that have changed since last session are re-parsed
+  - File modification times are tracked to detect changes
+  - Cache automatically saved to disk during indexing and on extension shutdown
+- **Smart File Watcher Debouncing**: File changes are batched and debounced (500ms) to prevent redundant parsing
+  - Multiple file edits within the debounce window are processed together in one batch
+  - Disk writes are also debounced (200ms) to minimize I/O during active editing
+  - Dramatically improves responsiveness when rapidly saving multiple files
+- **Automatic Extension Activation**: Extension now activates automatically when VS Code starts
+  - Symbol indexing begins immediately without waiting for user to open the picker
+  - Background indexing happens in parallel with user editing
+- **Re-indexing Progress Notification**: When files are detected as changed, a progress notification shows the re-indexing status
+  - Displays file count being re-indexed with percentage progress
+  - Updates progress as files are processed
+
 ### Changed
 - `RubyNavigate: Copy Qualified Name to Clipboard` command is now enabled only when the text editor has focus
 

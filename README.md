@@ -24,8 +24,11 @@ Quickly jump to Ruby classes, modules, constants, Rails scopes, and methods by t
 - **Recent History Management**: Remove items from recently opened with the X button
 - **Configurable Limits**: Control how many items appear in each section
 - **Optimized Performance**: Intelligent caching system for instant results, even in large projects
+  - Automatic activation on VS Code startup - background indexing begins immediately
+  - Disk cache persistence - subsequent VS Code restarts load cached symbols near-instantly
+  - Smart debouncing - rapid file edits are batched to prevent redundant parsing
   - Background indexing on startup with progress notification and ETA
-  - Real-time progress updates for large projects (shows file count, percentage, and ETA)
+  - Real-time progress updates for both initial indexing and file re-indexing
   - Partial results available during indexing; a picker hint explains when results are still loading
   - Automatic cache invalidation when files change
   - Picker opens immediately while symbols load

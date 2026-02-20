@@ -11,8 +11,8 @@ let symbolCache: SymbolCache;
 export function activate(context: ExtensionContext) {
 	extensionContext = context;
 	
-	// Initialize symbol cache and start background indexing
-	symbolCache = new SymbolCache();
+	// Initialize symbol cache with storage URI for disk persistence
+	symbolCache = new SymbolCache(context.globalStorageUri);
 	setSymbolCache(symbolCache);
 	context.subscriptions.push(symbolCache);
 	
