@@ -2,7 +2,7 @@
   "name": "rubynavigate",
   "displayName": "RubyNavigate",
   "description": "Navigate Ruby projects with ease - quickly jump to classes and modules using fuzzy search and fully qualified names",
-  "version": "0.0.14",
+  "version": "0.0.15",
   "publisher": "pastouris",
   "icon": "logo.png",
   "license": "GPL-3.0",
@@ -40,7 +40,8 @@
       },
       {
         "command": "rubynavigate.copyQualifiedName",
-        "title": "RubyNavigate: Copy Qualified Name to Clipboard"
+        "title": "RubyNavigate: Copy Qualified Name to Clipboard",
+        "enablement": "editorTextFocus"
       }
     ],
     "configuration": {

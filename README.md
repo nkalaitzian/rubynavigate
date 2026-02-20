@@ -60,6 +60,7 @@ Copy behavior details:
 - Works from active-file parsing even while background indexing is still running
 - Handles one-line definitions (for example, `def self.test; true; end`)
 - Preserves namespace through common block structures such as `scope ... do ... end` and `included do ... end`
+- Command is only enabled when the text editor is focused
 
 ## Keyboard Shortcuts
 

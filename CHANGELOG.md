@@ -1,6 +1,11 @@
 # Change Log
 ## [Unreleased]
 
+## [0.0.15] - 2026-02-20
+
+### Changed
+- `RubyNavigate: Copy Qualified Name to Clipboard` command is now enabled only when the text editor has focus
+
 ## [0.0.14] - 2026-02-17
 
 ### Added
