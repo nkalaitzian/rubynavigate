@@ -27,6 +27,8 @@ Quickly jump to Ruby classes, modules, constants, Rails scopes, and methods by t
   - Automatic activation on VS Code startup - background indexing begins immediately
   - Disk cache persistence - subsequent VS Code restarts load cached symbols near-instantly
   - Smart debouncing - rapid file edits are batched to prevent redundant parsing
+  - Priority directory indexing - common directories (app/models, app/controllers, etc.) are indexed first
+  - Live picker updates - results appear and improve in real-time as indexing progresses
   - Background indexing on startup with progress notification and ETA
   - Real-time progress updates for both initial indexing and file re-indexing
   - Partial results available during indexing; a picker hint explains when results are still loading
@@ -65,6 +67,21 @@ Copy behavior details:
 - Preserves namespace through common block structures such as `scope ... do ... end` and `included do ... end`
 - Command is only enabled when the text editor is focused
 
+### Rebuild Symbol Cache
+
+If you encounter issues with the symbol cache (stale results, missing symbols, etc.), you can force a complete rebuild:
+
+1. Open the command palette (`Ctrl+Shift+P` / `Cmd+Shift+P`)
+2. Run: **RubyNavigate: Rebuild Symbol Cache**
+3. Confirm the action when prompted
+4. Wait for the rebuilding process to complete
+
+This command:
+- Clears both the in-memory cache and disk cache
+- Re-indexes all Ruby files from scratch
+- Shows progress with file count and percentage
+- Displays a confirmation message when complete
+
 ## Keyboard Shortcuts
 
 You can add a custom keyboard shortcut to quickly access RubyNavigate:
@@ -100,6 +117,12 @@ Customize the behavior of RubyNavigate through VS Code settings:
 
 - **`rubynavigate.excludeDirectories`** (default: `["node_modules", ".git", "vendor", "tmp", "dist", "out"]`)  
   Directories to exclude when searching for Ruby files. Each entry will be matched as `**/{entry}/**`.
+
+- **`rubynavigate.priorityDirectories`** (default: `["app/models", "app/controllers", "app/services", "app/jobs", "app/helpers", "app", "lib"]`)  
+  Directories to index first during startup. Files in these directories will be processed before others, improving perceived performance. Order matters - earlier entries are indexed first. Customize this list to match your project's most frequently accessed directories.
+
+- **`rubynavigate.maxCacheSizeMB`** (default: `100`)  
+  Maximum size of the symbol cache file in megabytes. If the cache exceeds this limit, older entries will be automatically pruned to stay within the limit. Range: 1-1000 MB. Increase this value for very large workspaces or decrease it to save disk space.
 
 Example settings:
 

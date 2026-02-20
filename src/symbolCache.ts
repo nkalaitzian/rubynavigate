@@ -24,12 +24,21 @@ export class SymbolCache {
 	private debounceTimer: NodeJS.Timeout | null = null;
 	private debounceDelayMs: number = 500;
 	private diskSaveTimer: NodeJS.Timeout | null = null;
+	private onCacheUpdateCallback: (() => void) | null = null;
 
 	constructor(storageUri?: Uri) {
 		if (storageUri) {
 			this.cacheFilePath = path.join(storageUri.fsPath, 'symbol-cache.json');
 		}
 		this.setupFileWatchers();
+	}
+
+	/**
+	 * Register a callback to be notified when the cache is updated during indexing.
+	 * The callback will be invoked periodically as new symbols are added.
+	 */
+	onCacheUpdate(callback: (() => void) | null): void {
+		this.onCacheUpdateCallback = callback;
 	}
 
 	async loadFromDisk(): Promise<void> {
@@ -103,10 +112,57 @@ export class SymbolCache {
 				}
 			}
 
-			fs.writeFileSync(this.cacheFilePath, JSON.stringify(cacheData), 'utf-8');
+			// Check cache size and prune if necessary
+			const prunedData = this.pruneIfNeeded(cacheData);
+
+			fs.writeFileSync(this.cacheFilePath, JSON.stringify(prunedData), 'utf-8');
 		} catch (e) {
 			console.error('RubyNavigate: Failed to save cache to disk:', e);
 		}
+	}
+
+	private pruneIfNeeded(cacheData: Record<string, CachedFileEntry>): Record<string, CachedFileEntry> {
+		const config = workspace.getConfiguration('rubynavigate');
+		const maxSizeMB = config.get<number>('maxCacheSizeMB', 100);
+		const maxSizeBytes = maxSizeMB * 1024 * 1024;
+
+		// Calculate current size
+		const jsonString = JSON.stringify(cacheData);
+		const currentSize = Buffer.byteLength(jsonString, 'utf-8');
+
+		if (currentSize <= maxSizeBytes) {
+			return cacheData;
+		}
+
+		// Cache is too large, prune oldest entries
+		console.warn(`RubyNavigate: Cache size (${(currentSize / 1024 / 1024).toFixed(2)} MB) exceeds limit (${maxSizeMB} MB). Pruning oldest entries...`);
+
+		// Sort entries by modification time (oldest first)
+		const sortedEntries = Object.entries(cacheData).sort((a, b) => a[1].mtime - b[1].mtime);
+
+		// Remove oldest entries until we're under the limit
+		let prunedData: Record<string, CachedFileEntry> = {};
+		let prunedSize = 0;
+
+		// Add entries from newest to oldest until we hit the limit (with 10% buffer)
+		const targetSize = maxSizeBytes * 0.9;
+		for (let i = sortedEntries.length - 1; i >= 0; i--) {
+			const [filePath, entry] = sortedEntries[i];
+			const testData = { ...prunedData, [filePath]: entry };
+			const testSize = Buffer.byteLength(JSON.stringify(testData), 'utf-8');
+
+			if (testSize <= targetSize) {
+				prunedData[filePath] = entry;
+				prunedSize = testSize;
+			} else {
+				break;
+			}
+		}
+
+		const removedCount = sortedEntries.length - Object.keys(prunedData).length;
+		console.log(`RubyNavigate: Pruned ${removedCount} oldest files from cache. New size: ${(prunedSize / 1024 / 1024).toFixed(2)} MB`);
+
+		return prunedData;
 	}
 
 	private debouncedSaveToDisk(filePath: string): Promise<void> {
@@ -272,6 +328,35 @@ export class SymbolCache {
 		this.indexingPromise = null;
 	}
 
+	async clearAndRebuildIndex(progress?: Progress<{ message?: string; increment?: number }>): Promise<void> {
+		this.isIndexing = true;
+		this.indexingStartMs = Date.now();
+		this.totalFiles = 0;
+		this.processedFiles = 0;
+
+		// Clear in-memory cache
+		this.cache.clear();
+		this.fileModTimes.clear();
+
+		// Delete disk cache file
+		if (this.cacheFilePath && fs.existsSync(this.cacheFilePath)) {
+			try {
+				fs.unlinkSync(this.cacheFilePath);
+			} catch (e) {
+				console.error('RubyNavigate: Failed to delete cache file:', e);
+			}
+		}
+
+		this.indexingPromise = this.performIndexing(progress);
+		await this.indexingPromise;
+
+		// Save updated cache to disk
+		await this.saveToDisk();
+
+		this.isIndexing = false;
+		this.indexingPromise = null;
+	}
+
 	private async performIndexing(progress?: Progress<{ message?: string; increment?: number }>): Promise<void> {
 		const config = workspace.getConfiguration('rubynavigate');
 		const excludeDirs = config.get<string[]>('excludeDirectories', ['node_modules', '.git', 'vendor', 'tmp', 'dist', 'out']);
@@ -292,12 +377,20 @@ export class SymbolCache {
 			}
 		}
 
+		// Prioritize files based on directory configuration
+		const prioritizedFiles = this.prioritizeFiles(files);
+
 		// Process files in batches to avoid blocking
 		const batchSize = 50;
-		for (let i = 0; i < files.length; i += batchSize) {
-			const batch = files.slice(i, i + batchSize);
+		for (let i = 0; i < prioritizedFiles.length; i += batchSize) {
+			const batch = prioritizedFiles.slice(i, i + batchSize);
 			await Promise.all(batch.map(uri => this.parseFileIfNeeded(uri)));
 			this.processedFiles = Math.min(i + batchSize, totalFiles);
+
+			// Notify listeners about cache update (every 2 batches for better performance)
+			if (this.onCacheUpdateCallback && i % (batchSize * 2) === 0) {
+				this.onCacheUpdateCallback();
+			}
 			
 			if (progress) {
 				const processed = this.processedFiles;
@@ -312,6 +405,11 @@ export class SymbolCache {
 			
 			// Yield to allow other operations
 			await new Promise(resolve => setTimeout(resolve, 0));
+		}
+
+		// Final notification when indexing completes
+		if (this.onCacheUpdateCallback) {
+			this.onCacheUpdateCallback();
 		}
 	}
 
@@ -337,6 +435,69 @@ export class SymbolCache {
 
 	isIndexingActive(): boolean {
 		return this.isIndexing;
+	}
+
+	private prioritizeFiles(files: Uri[]): Uri[] {
+		const config = workspace.getConfiguration('rubynavigate');
+		const priorityDirs = config.get<string[]>('priorityDirectories', ['app/models', 'app/controllers', 'app/services', 'app/jobs', 'app/helpers', 'app', 'lib']);
+
+		if (priorityDirs.length === 0) {
+			return files;
+		}
+
+		// Normalize priority directories for cross-platform matching
+		const normalizedPriorityDirs = priorityDirs.map(dir => dir.replace(/[\\/]/g, path.sep));
+
+		// Separate files into priority and non-priority buckets
+		const priorityFiles: Uri[] = [];
+		const regularFiles: Uri[] = [];
+
+		for (const file of files) {
+			const normalizedPath = file.fsPath.replace(/[\\/]/g, path.sep);
+			let isPriority = false;
+
+			// Check if file matches any priority directory
+			for (const priorityDir of normalizedPriorityDirs) {
+				if (normalizedPath.includes(path.sep + priorityDir + path.sep) || 
+				    normalizedPath.includes(path.sep + priorityDir.replace(/\//g, path.sep) + path.sep)) {
+					isPriority = true;
+					break;
+				}
+			}
+
+			if (isPriority) {
+				priorityFiles.push(file);
+			} else {
+				regularFiles.push(file);
+			}
+		}
+
+		// Sort priority files by the order of priority directories
+		priorityFiles.sort((a, b) => {
+			const aPath = a.fsPath.replace(/[\\/]/g, path.sep);
+			const bPath = b.fsPath.replace(/[\\/]/g, path.sep);
+
+			for (const priorityDir of normalizedPriorityDirs) {
+				const aNormDir = path.sep + priorityDir.replace(/\//g, path.sep) + path.sep;
+				const bNormDir = path.sep + priorityDir.replace(/\//g, path.sep) + path.sep;
+				const aMatches = aPath.includes(aNormDir);
+				const bMatches = bPath.includes(bNormDir);
+
+				if (aMatches && !bMatches) {
+					return -1;
+				}
+				if (!aMatches && bMatches) {
+					return 1;
+				}
+				if (aMatches && bMatches) {
+					return 0; // Both in same priority dir, keep original order
+				}
+			}
+			return 0;
+		});
+
+		// Return priority files first, then regular files
+		return [...priorityFiles, ...regularFiles];
 	}
 
 	private async parseFileIfNeeded(uri: Uri): Promise<void> {

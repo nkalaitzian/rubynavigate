@@ -74,6 +74,43 @@ export function activate(context: ExtensionContext) {
 	context.subscriptions.push(commands.registerCommand('rubynavigate.copyQualifiedName', async () => {
 		await copyQualifiedNameAtCaret();
 	}));
+
+	// Command to rebuild the symbol cache
+	context.subscriptions.push(commands.registerCommand('rubynavigate.rebuildCache', async () => {
+		await rebuildSymbolCache();
+	}));
+}
+
+async function rebuildSymbolCache() {
+	const answer = await window.showInformationMessage(
+		'This will clear the symbol cache and rebuild it from scratch. Continue?',
+		'Yes',
+		'No'
+	);
+
+	if (answer !== 'Yes') {
+		return;
+	}
+
+	interface ProgressReporter {
+		report: (value: { message?: string; increment?: number }) => void;
+	}
+
+	await window.withProgress({
+		location: ProgressLocation.Notification,
+		title: "RubyNavigate: Rebuilding symbol cache",
+		cancellable: false
+	}, async (progress: ProgressReporter) => {
+		await symbolCache.clearAndRebuildIndex(progress);
+		const fileCount = symbolCache.getFileCount();
+		const symbolCount = symbolCache.getSymbolCount();
+		window.showInformationMessage(`RubyNavigate: Rebuilt cache with ${fileCount} files and ${symbolCount} symbols`);
+		console.log(`RubyNavigate: Rebuilt cache with ${fileCount} files and ${symbolCount} symbols`);
+		return;
+	}).then(undefined, (err: Error) => {
+		console.error('RubyNavigate: Error during cache rebuild:', err);
+		window.showErrorMessage(`RubyNavigate: Failed to rebuild cache: ${err.message}`);
+	});
 }
 
 async function copyQualifiedNameAtCaret() {
@@ -351,6 +388,18 @@ async function showRubySymbolPicker() {
 		picker.busy = false;
 	});
 
+	// Register callback for live updates during indexing
+	symbolCache.onCacheUpdate(() => {
+		// Reload symbols and update picker
+		listRubySymbols().then(symbols => {
+			allSymbols = symbols;
+			currentlyOpen = getCurrentlyOpenSymbolFiles(allSymbols);
+			updateItems(picker.value);
+		}).catch(err => {
+			console.error('Error reloading symbols:', err);
+		});
+	});
+
 	const disposables = [
 		picker.onDidChangeValue(value => updateItems(value)),
 		picker.onDidTriggerItemButton(async (event) => {
@@ -379,6 +428,8 @@ async function showRubySymbolPicker() {
 			picker.dispose();
 			currentPicker = undefined;
 			refreshPicker = undefined;
+			// Clear the cache update callback
+			symbolCache.onCacheUpdate(null);
 			await commands.executeCommand('setContext', 'extension.rubynavigate.pickerActive', false);
 			disposables.forEach(d => d.dispose());
 		})

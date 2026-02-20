@@ -18,6 +18,24 @@
 - **Re-indexing Progress Notification**: When files are detected as changed, a progress notification shows the re-indexing status
   - Displays file count being re-indexed with percentage progress
   - Updates progress as files are processed
+- **Live Picker Updates**: Picker automatically refreshes as symbols are indexed
+  - No need to close and reopen the picker to see newly indexed symbols
+  - Results appear and improve in real-time as indexing progresses
+  - Updates occur every 100 files (2 batches) for optimal performance
+- **Rebuild Symbol Cache Command**: New command to force a complete cache rebuild
+  - Accessible via Command Palette: `RubyNavigate: Rebuild Symbol Cache`
+  - Clears both in-memory and disk cache, then re-indexes all files from scratch
+  - Useful when cache becomes stale or corrupted
+- **Cache Size Limit**: Configurable maximum size for the disk cache file
+  - New setting `rubynavigate.maxCacheSizeMB` (default: 100 MB)
+  - Automatically prunes oldest cache entries when limit is exceeded
+  - Prevents unlimited cache growth in large workspaces
+  - Logs pruning activity to console for transparency
+- **Priority Directory Indexing**: Configure which directories are indexed first for faster perceived performance
+  - New setting `rubynavigate.priorityDirectories` controls indexing order
+  - Default priority: `app/models`, `app/controllers`, `app/services`, `app/jobs`, `app/helpers`, `app`, `lib`
+  - Files in priority directories are processed first, making symbols available sooner
+  - Fully customizable - adjust order or add your own directories
 
 ### Changed
 - `RubyNavigate: Copy Qualified Name to Clipboard` command is now enabled only when the text editor has focus

@@ -45,6 +45,10 @@
         "command": "rubynavigate.copyQualifiedName",
         "title": "RubyNavigate: Copy Qualified Name to Clipboard",
         "enablement": "editorTextFocus"
+      },
+      {
+        "command": "rubynavigate.rebuildCache",
+        "title": "RubyNavigate: Rebuild Symbol Cache"
       }
     ],
     "configuration": {
@@ -77,6 +81,29 @@
             "type": "string"
           },
           "description": "Directories to exclude when searching for Ruby files. Each entry will be matched as **/{entry}/**."
+        },
+        "rubynavigate.priorityDirectories": {
+          "type": "array",
+          "default": [
+            "app/models",
+            "app/controllers",
+            "app/services",
+            "app/jobs",
+            "app/helpers",
+            "app",
+            "lib"
+          ],
+          "items": {
+            "type": "string"
+          },
+          "description": "Directories to index first during startup. Files in these directories will be processed before others, improving perceived performance. Order matters - earlier entries are indexed first."
+        },
+        "rubynavigate.maxCacheSizeMB": {
+          "type": "number",
+          "default": 100,
+          "minimum": 1,
+          "maximum": 1000,
+          "description": "Maximum size of the symbol cache file in megabytes. If the cache exceeds this limit, older entries will be pruned. Default: 100 MB."
         }
       }
     },
