@@ -10,7 +10,7 @@ interface CachedFileEntry {
 }
 
 export class SymbolCache {
-	private static readonly DEFAULT_FILE_INDEX_TIMEOUT_MS = 5000;
+	private static readonly defaultFileIndexTimeoutMs = 5000;
 
 	private cache: Map<string, RubySymbol[]> = new Map();
 	private fileModTimes: Map<string, number> = new Map();
@@ -536,8 +536,8 @@ export class SymbolCache {
 
 	private getFileIndexTimeoutMs(): number {
 		const config = workspace.getConfiguration('rubynavigate');
-		const configuredTimeout = config.get<number>('fileIndexTimeoutMs', SymbolCache.DEFAULT_FILE_INDEX_TIMEOUT_MS);
-		return Number.isFinite(configuredTimeout) ? Math.max(100, configuredTimeout) : SymbolCache.DEFAULT_FILE_INDEX_TIMEOUT_MS;
+		const configuredTimeout = config.get<number>('fileIndexTimeoutMs', SymbolCache.defaultFileIndexTimeoutMs);
+		return Number.isFinite(configuredTimeout) ? Math.max(100, configuredTimeout) : SymbolCache.defaultFileIndexTimeoutMs;
 	}
 
 	private async extractSymbolsFromDocument(uri: Uri): Promise<RubySymbol[]> {
