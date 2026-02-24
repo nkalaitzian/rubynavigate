@@ -135,7 +135,7 @@
     "compile-tests": "tsc -p . --outDir out",
     "lint": "eslint src --ext ts",
     "test": "npm run compile-tests && mocha --ui tdd ./out/test/suite/**/*.test.js",
-    "release": "powershell -ExecutionPolicy Bypass -File scripts/release.ps1"
+    "release": "node scripts/release.js"
   },
   "devDependencies": {
     "@types/glob": "^8.1.0",
