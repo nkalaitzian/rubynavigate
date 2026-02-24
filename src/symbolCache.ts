@@ -10,6 +10,8 @@ interface CachedFileEntry {
 }
 
 export class SymbolCache {
+	private static readonly DEFAULT_FILE_INDEX_TIMEOUT_MS = 5000;
+
 	private cache: Map<string, RubySymbol[]> = new Map();
 	private fileModTimes: Map<string, number> = new Map();
 	private isIndexing: boolean = false;
@@ -506,24 +508,63 @@ export class SymbolCache {
 			const stat = fs.statSync(uri.fsPath);
 			const currentMtime = stat.mtimeMs;
 			const cachedMtime = this.fileModTimes.get(uri.fsPath);
+			const timeoutMs = this.getFileIndexTimeoutMs();
 
 			// If file is in cache and hasn't changed, skip it
 			if (cachedMtime !== undefined && cachedMtime === currentMtime && this.cache.has(uri.fsPath)) {
 				return;
 			}
 
-			const document = await workspace.openTextDocument(uri);
-			const text = document.getText();
-			const parsed = parseRubySymbolsFromText(text);
-			const symbols: RubySymbol[] = parsed.map(entry => {
-				const start = document.positionAt(entry.index);
-				const end = document.positionAt(entry.index + entry.length);
-				return { name: entry.name, uri, range: new Range(start, end), isPrivate: entry.isPrivate };
-			});
+			const symbols = await this.withTimeout(
+				this.extractSymbolsFromDocument(uri),
+				timeoutMs
+			);
+
+			if (!symbols) {
+				const warningMessage = `RubyNavigate: Skipped indexing for '${uri.fsPath}' because it took longer than ${timeoutMs}ms.`;
+				console.warn(warningMessage);
+				void window.showWarningMessage(warningMessage);
+				return;
+			}
+
 			this.cache.set(uri.fsPath, symbols);
 			this.fileModTimes.set(uri.fsPath, currentMtime);
 		} catch (e) {
 			// Skip files that can't be parsed
+		}
+	}
+
+	private getFileIndexTimeoutMs(): number {
+		const config = workspace.getConfiguration('rubynavigate');
+		const configuredTimeout = config.get<number>('fileIndexTimeoutMs', SymbolCache.DEFAULT_FILE_INDEX_TIMEOUT_MS);
+		return Number.isFinite(configuredTimeout) ? Math.max(100, configuredTimeout) : SymbolCache.DEFAULT_FILE_INDEX_TIMEOUT_MS;
+	}
+
+	private async extractSymbolsFromDocument(uri: Uri): Promise<RubySymbol[]> {
+		const document = await workspace.openTextDocument(uri);
+		const text = document.getText();
+		const parsed = parseRubySymbolsFromText(text);
+		return parsed.map(entry => {
+			const start = document.positionAt(entry.index);
+			const end = document.positionAt(entry.index + entry.length);
+			return { name: entry.name, uri, range: new Range(start, end), isPrivate: entry.isPrivate };
+		});
+	}
+
+	private async withTimeout<T>(operation: Promise<T>, timeoutMs: number): Promise<T | null> {
+		let timeoutHandle: NodeJS.Timeout | undefined;
+
+		try {
+			return await Promise.race([
+				operation,
+				new Promise<null>(resolve => {
+					timeoutHandle = setTimeout(() => resolve(null), timeoutMs);
+				})
+			]);
+		} finally {
+			if (timeoutHandle) {
+				clearTimeout(timeoutHandle);
+			}
 		}
 	}
 

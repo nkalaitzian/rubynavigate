@@ -125,6 +125,9 @@ Customize the behavior of RubyNavigate through VS Code settings:
 - **`rubynavigate.maxCacheSizeMB`** (default: `100`)  
   Maximum size of the symbol cache file in megabytes. If the cache exceeds this limit, older entries will be automatically pruned to stay within the limit. Range: 1-1000 MB. Increase this value for very large workspaces or decrease it to save disk space.
 
+- **`rubynavigate.fileIndexTimeoutMs`** (default: `5000`)  
+  Maximum time in milliseconds to index a single Ruby file before it is skipped. When a file exceeds this timeout, RubyNavigate shows a warning notification with the file path.
+
 Example settings:
 
 ```json

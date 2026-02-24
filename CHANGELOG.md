@@ -1,6 +1,15 @@
 # Change Log
 ## [Unreleased]
 
+## [0.0.17] - 2026-02-24
+
+### Added
+- **Configurable File Index Timeout**: Added `rubynavigate.fileIndexTimeoutMs` setting (default: `5000`) to control how long RubyNavigate waits before skipping a slow file during indexing.
+- **Timeout Warning Notification**: When a file exceeds the configured indexing timeout, RubyNavigate now shows a warning notification with the specific file path.
+
+### Changed
+- Slow files that exceed the per-file timeout are skipped during indexing so other files continue indexing without delay.
+
 ## [0.0.16] - 2026-02-20
 
 ### Added
