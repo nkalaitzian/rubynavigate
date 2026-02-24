@@ -47,6 +47,18 @@
 				"focus": true,
 				"clear": true
 			}
+		},
+		{
+			"type": "npm",
+			"script": "release-dry-run",
+			"label": "Release Extension (Dry Run)",
+			"problemMatcher": [],
+			"presentation": {
+				"reveal": "always",
+				"panel": "dedicated",
+				"focus": true,
+				"clear": true
+			}
 		}
 	]
 }

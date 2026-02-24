@@ -135,7 +135,8 @@
     "compile-tests": "tsc -p . --outDir out",
     "lint": "eslint src --ext ts",
     "test": "npm run compile-tests && mocha --ui tdd ./out/test/suite/**/*.test.js",
-    "release": "node scripts/release.js"
+    "release": "node scripts/release.js",
+    "release-dry-run": "node scripts/release.js --dry-run"
   },
   "devDependencies": {
     "@types/glob": "^8.1.0",
