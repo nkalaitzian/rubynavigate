@@ -381,6 +381,25 @@ suite('Ruby symbol detection', () => {
 	});
 });
 
+	test('isClassOrModule excludes instance methods with # notation', () => {
+		assert.strictEqual(isClassOrModule('User#authenticate'), false);
+		assert.strictEqual(isClassOrModule('User::Admin#login'), false);
+		assert.strictEqual(isClassOrModule('Order#total_price'), false);
+	});
+
+	test('isClassOrModule excludes bare lowercase method names (orphaned parser symbols)', () => {
+		assert.strictEqual(isClassOrModule('fbm?'), false);
+		assert.strictEqual(isClassOrModule('c2c?'), false);
+		assert.strictEqual(isClassOrModule('authenticate'), false);
+		assert.strictEqual(isClassOrModule('total_price'), false);
+	});
+
+	test('isClassOrModule still accepts valid class and module names', () => {
+		assert.strictEqual(isClassOrModule('User'), true);
+		assert.strictEqual(isClassOrModule('User::Admin'), true);
+		assert.strictEqual(isClassOrModule('MyApp::Models::Order'), true);
+	});
+
 test('Handles one-line method definitions', () => {
 	const text = [
  		'class Meme',

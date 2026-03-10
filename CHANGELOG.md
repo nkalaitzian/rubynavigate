@@ -1,6 +1,16 @@
 # Change Log
 ## [Unreleased]
 
+## [0.0.18] - 2026-03-10
+
+### Changed
+- Empty-query results are now consistently class/module-focused across grouped sections.
+- **Currently open** and **Recently opened** sections now show only class/module symbols until you start typing.
+
+### Fixed
+- Prevented method symbols from appearing in grouped empty-query results (including instance-method forms like `User#authenticate`).
+- Reduced orphaned lowercase method-name noise in empty-query results by tightening class/module classification.
+
 ## [0.0.17] - 2026-02-24
 
 ### Added

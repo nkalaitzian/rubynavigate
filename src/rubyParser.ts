@@ -323,8 +323,13 @@ export function compareMatches(nameA: string, nameB: string, searchTerm: string)
 }
 
 export function isClassOrModule(symbolName: string): boolean {
-	// Scopes always contain a dot
+	// Scopes and class methods always contain a dot
 	if (symbolName.includes('.')) {
+		return false;
+	}
+
+	// Instance methods always contain a #
+	if (symbolName.includes('#')) {
 		return false;
 	}
 
@@ -333,6 +338,12 @@ export function isClassOrModule(symbolName: string): boolean {
 	const lastPart = parts[parts.length - 1];
 	// If last part is all uppercase, it's a constant
 	if (lastPart === lastPart.toUpperCase() && lastPart.length > 0 && /[A-Z]/.test(lastPart)) {
+		return false;
+	}
+
+	// Ruby class/module names must start with an uppercase letter.
+	// Bare lowercase names are orphaned method symbols (parser couldn't determine enclosing class).
+	if (!/^[A-Z]/.test(lastPart)) {
 		return false;
 	}
 

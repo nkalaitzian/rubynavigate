@@ -22,6 +22,7 @@ Quickly jump to Ruby classes, modules, constants, Rails scopes, and methods by t
   - **Currently open** files (with Ruby symbols)
   - **Recently opened** files you've previously navigated to
   - **Workspace results** for all other matches
+- **Cleaner Empty Search Results**: With an empty query, grouped sections show only class/module symbols; methods appear once you start typing
 - **Recent History Management**: Remove items from recently opened with the X button
 - **Configurable Limits**: Control how many items appear in each section
 - **Optimized Performance**: Intelligent caching system for instant results, even in large projects
