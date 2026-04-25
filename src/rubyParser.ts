@@ -7,7 +7,7 @@ export type RubyParsedSymbol = {
 
 export function parseRubySymbolsFromText(text: string): RubyParsedSymbol[] {
   const symbols: RubyParsedSymbol[] = [];
-  const declRegex = /^\s*(class|module)\s+([A-Z][A-Za-z0-9]*(?:::[A-Z][A-Za-z0-9]*)*)/;
+  const declRegex = /^\s*(class|module)\s+([A-Z][A-Za-z0-9_]*(?:::[A-Z][A-Za-z0-9_]*)*)/;
   const constantRegex = /^\s*([A-Z][A-Z0-9_]*)\s*=/;
   const scopeRegex = /^\s*scope\s+:([a-z_][a-z0-9_]*)/i;
   const otherBlockRegex = /^\s*(def|if|unless|case|while|until|for|begin|do)\b/;
@@ -28,11 +28,19 @@ export function parseRubySymbolsFromText(text: string): RubyParsedSymbol[] {
     
     // Check for privacy modifier keyword
     const privacyMatch = privacyRegex.exec(line);
+    let inlinePrivacy: boolean | undefined;
     if (privacyMatch && stack.some(s => s.type === 'class' || s.type === 'module')) {
       const privacyKeyword = privacyMatch[1];
-      isCurrentlyPrivate = privacyKeyword === 'private';
-      offset += line.length + (isLastLine ? 0 : lineEndingLength);
-      continue;
+      if (/\bdef\b/.test(line)) {
+        // Inline modifier (e.g., `private def method_name`) - only affects this method,
+        // don't change class-level visibility. Let the line fall through to method regexes.
+        inlinePrivacy = privacyKeyword === 'private';
+      } else {
+        // Standalone modifier (e.g., `private` on its own line) - affects all subsequent methods
+        isCurrentlyPrivate = privacyKeyword === 'private';
+        offset += line.length + (isLastLine ? 0 : lineEndingLength);
+        continue;
+      }
     }
     
     if (endRegex.test(line)) {
@@ -118,7 +126,7 @@ export function parseRubySymbolsFromText(text: string): RubyParsedSymbol[] {
     }
 
     // Detect explicit receiver singleton methods: `def User.admins` or `def Foo::Bar.baz`
-    const receiverMethodRegex = /^\s*def\s+([A-Z][A-Za-z0-9_:]*)\.([a-zA-Z_][a-zA-Z0-9_]*[!?=]?)/;
+    const receiverMethodRegex = /^\s*(?:(?:private|protected|public)\s+)?def\s+([A-Z][A-Za-z0-9_:]*)\.([a-zA-Z_][a-zA-Z0-9_]*[!?=]?)/;
     const receiverMethodMatch = receiverMethodRegex.exec(line);
     if (receiverMethodMatch) {
       const receiver = receiverMethodMatch[1];
@@ -130,7 +138,7 @@ export function parseRubySymbolsFromText(text: string): RubyParsedSymbol[] {
       const nameIndex = offset + defStartIndex;
       const entireDefLength = receiverMethodMatch[0].length;
       const symbolIndex = symbols.length;
-      symbols.push({ name: fullName, index: nameIndex, length: entireDefLength, isPrivate: isCurrentlyPrivate });
+      symbols.push({ name: fullName, index: nameIndex, length: entireDefLength, isPrivate: inlinePrivacy ?? isCurrentlyPrivate });
       // If the method definition contains its `end` on the same line (one-liner), expand
       // the symbol to cover the whole line and do not push it on the stack.
       const afterDef = line.slice(receiverMethodMatch.index + receiverMethodMatch[0].length);
@@ -146,7 +154,7 @@ export function parseRubySymbolsFromText(text: string): RubyParsedSymbol[] {
     }
 
       // Detect class (singleton) methods: `def self.method_name` -> User.method_name
-      const classMethodRegex = /^\s*def\s+self\.([a-zA-Z_][a-zA-Z0-9_]*[!?=]?)/;
+      const classMethodRegex = /^\s*(?:(?:private|protected|public)\s+)?def\s+self\.([a-zA-Z_][a-zA-Z0-9_]*[!?=]?)/;
       const classMethodMatch = classMethodRegex.exec(line);
       if (classMethodMatch) {
         const methodName = classMethodMatch[1];
@@ -157,7 +165,7 @@ export function parseRubySymbolsFromText(text: string): RubyParsedSymbol[] {
         const nameIndex = offset + defStartIndex;
         const entireDefLength = classMethodMatch[0].length;
         const symbolIndex = symbols.length;
-        symbols.push({ name: fullName, index: nameIndex, length: entireDefLength, isPrivate: isCurrentlyPrivate });
+        symbols.push({ name: fullName, index: nameIndex, length: entireDefLength, isPrivate: inlinePrivacy ?? isCurrentlyPrivate });
           // If the method definition is a one-liner, expand to cover the whole line and skip stacking
           const afterDef = line.slice(classMethodMatch.index + classMethodMatch[0].length);
           if (/\bend\b/.test(afterDef)) {
@@ -172,7 +180,7 @@ export function parseRubySymbolsFromText(text: string): RubyParsedSymbol[] {
       }
 
       // Detect instance methods: `def method_name` -> User#method_name
-      const instanceMethodRegex = /^\s*def\s+([a-zA-Z_][a-zA-Z0-9_]*[!?=]?)/;
+      const instanceMethodRegex = /^\s*(?:(?:private|protected|public)\s+)?def\s+([a-zA-Z_][a-zA-Z0-9_]*[!?=]?)/;
       const instanceMethodMatch = instanceMethodRegex.exec(line);
       if (instanceMethodMatch) {
         const methodName = instanceMethodMatch[1];
@@ -183,7 +191,7 @@ export function parseRubySymbolsFromText(text: string): RubyParsedSymbol[] {
         const nameIndex = offset + defStartIndex;
         const entireDefLength = instanceMethodMatch[0].length;
         const symbolIndex = symbols.length;
-        symbols.push({ name: fullName, index: nameIndex, length: entireDefLength, isPrivate: isCurrentlyPrivate });
+        symbols.push({ name: fullName, index: nameIndex, length: entireDefLength, isPrivate: inlinePrivacy ?? isCurrentlyPrivate });
           // If the instance method is a one-liner, expand to cover the whole line and skip stacking
           const afterDef = line.slice(instanceMethodMatch.index + instanceMethodMatch[0].length);
           if (/\bend\b/.test(afterDef)) {
@@ -198,7 +206,9 @@ export function parseRubySymbolsFromText(text: string): RubyParsedSymbol[] {
 
     // Generic Ruby do/end block tracking (e.g., `included do`)
     // so closing `end` does not accidentally pop class/module scope.
-    if (/\bdo\b/.test(line) && !/\bend\b/.test(line)) {
+    // Strip trailing comments before checking to avoid false positives from `# do something`
+    const codeOnly = line.replace(/#.*$/, '');
+    if (/\bdo\b/.test(codeOnly) && !/\bend\b/.test(codeOnly)) {
       stack.push({ type: 'other' });
       offset += line.length + (isLastLine ? 0 : lineEndingLength);
       continue;

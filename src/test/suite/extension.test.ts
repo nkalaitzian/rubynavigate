@@ -488,3 +488,72 @@ test('Keeps class namespace after assignment block (x = if/case/begin)', () => {
 	assert.ok(names.includes('Ecommerce::Charger.paid_for?'));
 	assert.ok(names.includes('Ecommerce::Charger.refund_all_charges_for'));
 });
+
+test('Handles private def inline modifier pattern', () => {
+	const text = [
+		'class User',
+		'  def login',
+		'    true',
+		'  end',
+		'',
+		'  private def authenticate(password)',
+		'    password == "secret"',
+		'  end',
+		'',
+		'  def public_method',
+		'    true',
+		'  end',
+		'end',
+		''
+	].join('\n');
+
+	const symbols = parseRubySymbolsFromText(text);
+	const names = symbols.map(s => s.name);
+	// All three methods should be detected
+	assert.ok(names.includes('User#login'));
+	assert.ok(names.includes('User#authenticate'));
+	assert.ok(names.includes('User#public_method'));
+	// authenticate should be private, others should not
+	const authSym = symbols.find(s => s.name === 'User#authenticate');
+	assert.ok(authSym, 'authenticate should exist');
+	assert.strictEqual(authSym!.isPrivate, true);
+	const loginSym = symbols.find(s => s.name === 'User#login');
+	assert.strictEqual(loginSym!.isPrivate, false);
+	// public_method should NOT be private (inline modifier only affects one method)
+	const pubSym = symbols.find(s => s.name === 'User#public_method');
+	assert.strictEqual(pubSym!.isPrivate, false);
+});
+
+test('Does not push phantom stack entry from do in comments', () => {
+	const text = [
+		'class Worker',
+		'  # We need to do this carefully',
+		'  def perform',
+		'    true',
+		'  end',
+		'',
+		'  def cleanup',
+		'    true',
+		'  end',
+		'end',
+		''
+	].join('\n');
+
+	const names = parseRubySymbolsFromText(text).map(s => s.name);
+	assert.ok(names.includes('Worker'));
+	assert.ok(names.includes('Worker#perform'));
+	assert.ok(names.includes('Worker#cleanup'));
+	// cleanup should have Worker namespace (not lost due to phantom do)
+	assert.ok(!names.includes('cleanup'));
+});
+
+test('Finds classes with underscores in name', () => {
+	const text = [
+		'class My_Class',
+		'end',
+		''
+	].join('\n');
+
+	const names = parseRubySymbolsFromText(text).map(s => s.name);
+	assert.ok(names.includes('My_Class'));
+});

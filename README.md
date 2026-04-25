@@ -14,6 +14,7 @@ Quickly jump to Ruby classes, modules, constants, Rails scopes, and methods by t
 - **Rails Scope Lookup**: Search for ActiveRecord scopes defined in your models (e.g., `User.active`)
 - **Method Lookup**: Search for class/singleton methods and instance methods (e.g., `User.active` and `User#authenticate`)
 - **Private Method Filtering**: Private methods are automatically excluded from picker results to keep navigation clean and focused on public APIs
+- **Inline Privacy Modifiers**: Correctly handles `private def method_name` patterns — only the annotated method is marked private, not subsequent methods
 - **Smart Result Ordering**: Exact matches first, then prefix matches, then substring matches
   - Within each category, closer/shorter matches are prioritized
   - Search for `User::Admin` shows `User::Admin` → `User::AdminB` → `User::Administrator`
