@@ -7,10 +7,25 @@
 <p align="center">
   <a href="https://github.com/nkalaitzian/rubynavigate/actions/workflows/test.yml"><img src="https://github.com/nkalaitzian/rubynavigate/actions/workflows/test.yml/badge.svg" alt="Tests" /></a>
   <a href="https://marketplace.visualstudio.com/items?itemName=pastouris.rubynavigate"><img src="https://vsmarketplacebadges.dev/version/pastouris.rubynavigate.svg" alt="VS Code Marketplace Version" /></a>
+  <a href="https://marketplace.visualstudio.com/items?itemName=pastouris.rubynavigate"><img src="https://vsmarketplacebadges.dev/installs-short/pastouris.rubynavigate.svg" alt="Installs" /></a>
   <a href="https://github.com/nkalaitzian/rubynavigate/tags"><img src="https://img.shields.io/github/v/tag/nkalaitzian/rubynavigate?label=latest%20tag" alt="Latest Tag" /></a>
+  <a href="https://github.com/nkalaitzian/rubynavigate/issues"><img src="https://img.shields.io/github/issues/nkalaitzian/rubynavigate" alt="Open Issues" /></a>
+  <a href="LICENSE"><img src="https://img.shields.io/github/license/nkalaitzian/rubynavigate" alt="License" /></a>
+  <a href="https://github.com/nkalaitzian/rubynavigate"><img src="https://img.shields.io/github/stars/nkalaitzian/rubynavigate?style=social" alt="GitHub Stars" /></a>
 </p>
 
 Quickly jump to Ruby classes, modules, constants, Rails scopes, and methods by their fully qualified names. Perfect for navigating large Ruby projects with deeply nested class hierarchies.
+
+## Table of Contents
+
+- [Features](#features)
+- [Usage](#usage)
+- [Keyboard Shortcuts](#keyboard-shortcuts)
+- [Configuration](#configuration)
+- [Examples](#examples)
+- [Development](#development)
+- [Requirements](#requirements)
+- [License & Contributing](#license--contributing)
 
 ## Features
 
@@ -33,16 +48,11 @@ Quickly jump to Ruby classes, modules, constants, Rails scopes, and methods by t
 - **Recent History Management**: Remove items from recently opened with the X button
 - **Configurable Limits**: Control how many items appear in each section
 - **Optimized Performance**: Intelligent caching system for instant results, even in large projects
-  - Automatic activation on VS Code startup - background indexing begins immediately
-  - Disk cache persistence - subsequent VS Code restarts load cached symbols near-instantly
-  - Smart debouncing - rapid file edits are batched to prevent redundant parsing
-  - Priority directory indexing - common directories (app/models, app/controllers, etc.) are indexed first
-  - Live picker updates - results appear and improve in real-time as indexing progresses
-  - Background indexing on startup with progress notification and ETA
-  - Real-time progress updates for both initial indexing and file re-indexing
-  - Partial results available during indexing; a picker hint explains when results are still loading
-  - Automatic cache invalidation when files change
-  - Picker opens immediately while symbols load
+  - Background indexing on startup with progress notification and ETA — picker opens immediately while symbols load
+  - Disk cache persistence — subsequent VS Code restarts load cached symbols near-instantly
+  - Smart debouncing — rapid file edits are batched to prevent redundant parsing
+  - Priority directory indexing — common directories (e.g., `app/models`, `app/controllers`) indexed first for faster perceived performance
+  - Automatic cache invalidation when files change; partial results shown while indexing is in progress
 - **Workspace Scanning**: Automatically discovers Ruby files in your project
 
 ## Usage
@@ -177,6 +187,11 @@ You can search for:
 - `Ad` - Prefix matching to find Admin module classes
 - **Note**: Private methods like `User#hash_password` are excluded from default picker results to keep navigation focused on public APIs. You can still find them by explicitly searching for relevant keywords.
 
+## Requirements
+
+- **VS Code** `1.78.0` or higher
+- A workspace containing `.rb` files
+
 ## Development
 
 ### Prerequisites
@@ -195,3 +210,9 @@ npm run compile     # Build the extension (webpack)
 npm run watch       # Auto-recompile on file changes
 npm test            # Run the test suite
 ```
+
+## License & Contributing
+
+RubyNavigate is licensed under the [GPL-3.0 License](LICENSE).
+
+See [CHANGELOG.md](CHANGELOG.md) for release history. Bug reports and contributions are welcome via [GitHub Issues](https://github.com/nkalaitzian/rubynavigate/issues).
