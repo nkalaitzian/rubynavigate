@@ -208,6 +208,13 @@ export function parseRubySymbolsFromText(text: string): RubyParsedSymbol[] {
       stack.push({ type: 'other' });
     }
 
+    // Detect block-opening keywords after assignment (e.g., `x = if condition`)
+    // These open multi-line blocks with a matching `end` that must be tracked
+    // so the `end` doesn't accidentally close the containing method/class/module.
+    if (!otherBlockRegex.test(line) && /=\s*(if|unless|case|while|until|for|begin)\b/.test(line) && !/\bend\b/.test(line)) {
+      stack.push({ type: 'other' });
+    }
+
     offset += line.length + (isLastLine ? 0 : lineEndingLength);
   }
 

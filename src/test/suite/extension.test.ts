@@ -455,3 +455,36 @@ test('Keeps module namespace after included do/end for instance methods', () => 
 	assert.ok(names.includes('User::Authorization#admin?'));
 	assert.ok(!names.includes('admin?'));
 });
+
+test('Keeps class namespace after assignment block (x = if/case/begin)', () => {
+	const text = [
+		'class Ecommerce::Charger',
+		'  def self.payment_for(chargeable, amount:, reason:)',
+		'    exchange_rate = if domain_currency != "EUR"',
+		'                      get_rate("EUR")',
+		'                    else',
+		'                      1.0',
+		'                    end',
+		'',
+		'    Ecommerce::Charge.find_or_create_by(chargeable: chargeable)',
+		'  end',
+		'',
+		'  def self.paid_for?(chargeable, amount: nil)',
+		'    Ecommerce::Charge.where(chargeable: chargeable).any?',
+		'  end',
+		'',
+		'  def self.refund_all_charges_for(chargeable, issuer: nil)',
+		'    Ecommerce::Charge.where(chargeable: chargeable).find_each do |charge|',
+		'      charge.refund!(issuer: issuer)',
+		'    end',
+		'  end',
+		'end',
+		''
+	].join('\n');
+
+	const names = parseRubySymbolsFromText(text).map(s => s.name);
+	assert.ok(names.includes('Ecommerce::Charger'));
+	assert.ok(names.includes('Ecommerce::Charger.payment_for'));
+	assert.ok(names.includes('Ecommerce::Charger.paid_for?'));
+	assert.ok(names.includes('Ecommerce::Charger.refund_all_charges_for'));
+});
