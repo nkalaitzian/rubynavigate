@@ -4,6 +4,12 @@
   <img src="logo.png" alt="RubyNavigate Logo" width="320" />
 </p>
 
+<p align="center">
+  <a href="https://github.com/nkalaitzian/rubynavigate/actions/workflows/test.yml"><img src="https://github.com/nkalaitzian/rubynavigate/actions/workflows/test.yml/badge.svg" alt="Tests" /></a>
+  <a href="https://marketplace.visualstudio.com/items?itemName=pastouris.rubynavigate"><img src="https://vsmarketplacebadges.dev/version/pastouris.rubynavigate.svg" alt="VS Code Marketplace Version" /></a>
+  <a href="https://github.com/nkalaitzian/rubynavigate/tags"><img src="https://img.shields.io/github/v/tag/nkalaitzian/rubynavigate?label=latest%20tag" alt="Latest Tag" /></a>
+</p>
+
 Quickly jump to Ruby classes, modules, constants, Rails scopes, and methods by their fully qualified names. Perfect for navigating large Ruby projects with deeply nested class hierarchies.
 
 ## Features
