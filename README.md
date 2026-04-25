@@ -169,3 +169,22 @@ You can search for:
 - `Panel` - Partial match also works (case-insensitive)
 - `Ad` - Prefix matching to find Admin module classes
 - **Note**: Private methods like `User#hash_password` are excluded from default picker results to keep navigation focused on public APIs. You can still find them by explicitly searching for relevant keywords.
+
+## Development
+
+### Prerequisites
+
+This project uses [mise](https://mise.jdx.dev/) to manage tool versions. After cloning:
+
+```bash
+mise install        # Installs Node.js (version defined in .mise.toml)
+npm install         # Installs dependencies
+```
+
+### Build & Test
+
+```bash
+npm run compile     # Build the extension (webpack)
+npm run watch       # Auto-recompile on file changes
+npm test            # Run the test suite
+```
