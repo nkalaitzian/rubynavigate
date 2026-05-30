@@ -140,30 +140,24 @@ export class SymbolCache {
 		// Cache is too large, prune oldest entries
 		console.warn(`RubyNavigate: Cache size (${(currentSize / 1024 / 1024).toFixed(2)} MB) exceeds limit (${maxSizeMB} MB). Pruning oldest entries...`);
 
-		// Sort entries by modification time (oldest first)
-		const sortedEntries = Object.entries(cacheData).sort((a, b) => a[1].mtime - b[1].mtime);
+		// Sort entries by modification time (newest first)
+		const sortedEntries = Object.entries(cacheData).sort((a, b) => b[1].mtime - a[1].mtime);
 
-		// Remove oldest entries until we're under the limit
-		let prunedData: Record<string, CachedFileEntry> = {};
-		let prunedSize = 0;
-
-		// Add entries from newest to oldest until we hit the limit (with 10% buffer)
+		// Estimate per-entry sizes individually to avoid O(n²) JSON.stringify calls
 		const targetSize = maxSizeBytes * 0.9;
-		for (let i = sortedEntries.length - 1; i >= 0; i--) {
-			const [filePath, entry] = sortedEntries[i];
-			const testData = { ...prunedData, [filePath]: entry };
-			const testSize = Buffer.byteLength(JSON.stringify(testData), 'utf-8');
+		const prunedData: Record<string, CachedFileEntry> = {};
+		let estimatedSize = 2; // opening and closing braces {}
 
-			if (testSize <= targetSize) {
+		for (const [filePath, entry] of sortedEntries) {
+			const entrySize = Buffer.byteLength(JSON.stringify({ [filePath]: entry }), 'utf-8');
+			if (estimatedSize + entrySize <= targetSize) {
 				prunedData[filePath] = entry;
-				prunedSize = testSize;
-			} else {
-				break;
+				estimatedSize += entrySize;
 			}
 		}
 
 		const removedCount = sortedEntries.length - Object.keys(prunedData).length;
-		console.log(`RubyNavigate: Pruned ${removedCount} oldest files from cache. New size: ${(prunedSize / 1024 / 1024).toFixed(2)} MB`);
+		console.log(`RubyNavigate: Pruned ${removedCount} oldest files from cache. New size: ${(estimatedSize / 1024 / 1024).toFixed(2)} MB`);
 
 		return prunedData;
 	}
@@ -179,8 +173,12 @@ export class SymbolCache {
 		return Promise.resolve();
 	}
 
+	private pendingSaveResolvers: Array<() => void> = [];
+
 	private performDebouncedSave(): Promise<void> {
 		return new Promise(resolve => {
+			this.pendingSaveResolvers.push(resolve);
+
 			// Clear existing disk save timer
 			if (this.diskSaveTimer) {
 				clearTimeout(this.diskSaveTimer);
@@ -188,14 +186,15 @@ export class SymbolCache {
 
 			// Set new debounce timer for disk writes
 			this.diskSaveTimer = setTimeout(() => {
+				const resolvers = this.pendingSaveResolvers.splice(0);
 				this.saveToDisk()
 					.then(() => {
 						this.pendingDiskWrites.clear();
-						resolve();
+						resolvers.forEach(r => r());
 					})
 					.catch(e => {
 						console.error('Failed to save cache on debounced write:', e);
-						resolve();
+						resolvers.forEach(r => r());
 					});
 				this.diskSaveTimer = null;
 			}, 200); // Shorter debounce for disk writes (200ms vs 500ms for parsing)
@@ -568,24 +567,6 @@ export class SymbolCache {
 		}
 	}
 
-	private async parseFile(uri: Uri): Promise<void> {
-		try {
-			const stat = fs.statSync(uri.fsPath);
-			const document = await workspace.openTextDocument(uri);
-			const text = document.getText();
-			const parsed = parseRubySymbolsFromText(text);
-			const symbols: RubySymbol[] = parsed.map(entry => {
-				const start = document.positionAt(entry.index);
-				const end = document.positionAt(entry.index + entry.length);
-			return { name: entry.name, uri, range: new Range(start, end), isPrivate: entry.isPrivate };
-			});
-			this.cache.set(uri.fsPath, symbols);
-			this.fileModTimes.set(uri.fsPath, stat.mtimeMs);
-		} catch (e) {
-			// Skip files that can't be parsed
-		}
-	}
-
 	getAllSymbols(): RubySymbol[] {
 		const allSymbols: RubySymbol[] = [];
 		for (const symbols of this.cache.values()) {
@@ -595,7 +576,11 @@ export class SymbolCache {
 	}
 
 	getSymbolCount(): number {
-		return this.getAllSymbols().length;
+		let count = 0;
+		for (const symbols of this.cache.values()) {
+			count += symbols.length;
+		}
+		return count;
 	}
 
 	getFileCount(): number {

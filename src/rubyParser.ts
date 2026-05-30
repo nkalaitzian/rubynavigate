@@ -12,7 +12,7 @@ export function parseRubySymbolsFromText(text: string): RubyParsedSymbol[] {
   const scopeRegex = /^\s*scope\s+:([a-z_][a-z0-9_]*)/i;
   const otherBlockRegex = /^\s*(def|if|unless|case|while|until|for|begin|do)\b/;
   const classShovelRegex = /^\s*class\s+<</;
-  const endRegex = /^\s*end\b/;  const privacyRegex = /^\s*(private|protected|public)\b/;
+  const endRegex = /^\s*end\b/; const privacyRegex = /^\s*(private|protected|public)\b/;
   const lines = text.split(/\r?\n/);
   let offset = 0;
   const stack: Array<{ type: 'class' | 'module' | 'other'; name?: string; absolute?: boolean; symbolIndex?: number; isPrivate?: boolean }> = [];
@@ -25,7 +25,7 @@ export function parseRubySymbolsFromText(text: string): RubyParsedSymbol[] {
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i];
     const isLastLine = i === lines.length - 1;
-    
+
     // Check for privacy modifier keyword
     const privacyMatch = privacyRegex.exec(line);
     let inlinePrivacy: boolean | undefined;
@@ -42,7 +42,7 @@ export function parseRubySymbolsFromText(text: string): RubyParsedSymbol[] {
         continue;
       }
     }
-    
+
     if (endRegex.test(line)) {
       if (stack.length > 0) {
         const popped = stack.pop()!;
@@ -153,56 +153,51 @@ export function parseRubySymbolsFromText(text: string): RubyParsedSymbol[] {
       continue;
     }
 
-      // Detect class (singleton) methods: `def self.method_name` -> User.method_name
-      const classMethodRegex = /^\s*(?:(?:private|protected|public)\s+)?def\s+self\.([a-zA-Z_][a-zA-Z0-9_]*[!?=]?)/;
-      const classMethodMatch = classMethodRegex.exec(line);
-      if (classMethodMatch) {
-        const methodName = classMethodMatch[1];
-        const currentNamespace = getCurrentNamespace(stack);
-        const fullName = currentNamespace ? `${currentNamespace}.${methodName}` : methodName;
-        // Capture entire definition from 'def' to end of method name
-        const defStartIndex = classMethodMatch.index;
-        const nameIndex = offset + defStartIndex;
-        const entireDefLength = classMethodMatch[0].length;
-        const symbolIndex = symbols.length;
-        symbols.push({ name: fullName, index: nameIndex, length: entireDefLength, isPrivate: inlinePrivacy ?? isCurrentlyPrivate });
-          // If the method definition is a one-liner, expand to cover the whole line and skip stacking
-          const afterDef = line.slice(classMethodMatch.index + classMethodMatch[0].length);
-          if (/\bend\b/.test(afterDef)) {
-            const newLength = line.length - classMethodMatch.index + (isLastLine ? 0 : lineEndingLength);
-            symbols[symbolIndex].length = Math.max(symbols[symbolIndex].length, newLength);
-          } else {
-            // Treat method body as a block so its closing `end` won't close the containing class/module
-            stack.push({ type: 'other', symbolIndex });
-          }
-        offset += line.length + (isLastLine ? 0 : lineEndingLength);
-        continue;
+    // Detect class (singleton) methods: `def self.method_name` -> User.method_name
+    const classMethodRegex = /^\s*(?:(?:private|protected|public)\s+)?def\s+self\.([a-zA-Z_][a-zA-Z0-9_]*[!?=]?)/;
+    const classMethodMatch = classMethodRegex.exec(line);
+    if (classMethodMatch) {
+      const methodName = classMethodMatch[1];
+      const currentNamespace = getCurrentNamespace(stack);
+      const fullName = currentNamespace ? `${currentNamespace}.${methodName}` : methodName;
+      const defStartIndex = classMethodMatch.index;
+      const nameIndex = offset + defStartIndex;
+      const entireDefLength = classMethodMatch[0].length;
+      const symbolIndex = symbols.length;
+      symbols.push({ name: fullName, index: nameIndex, length: entireDefLength, isPrivate: inlinePrivacy ?? isCurrentlyPrivate });
+      const afterDef = line.slice(classMethodMatch.index + classMethodMatch[0].length);
+      if (/\bend\b/.test(afterDef)) {
+        const newLength = line.length - classMethodMatch.index + (isLastLine ? 0 : lineEndingLength);
+        symbols[symbolIndex].length = Math.max(symbols[symbolIndex].length, newLength);
+      } else {
+        stack.push({ type: 'other', symbolIndex });
       }
+      offset += line.length + (isLastLine ? 0 : lineEndingLength);
+      continue;
+    }
 
-      // Detect instance methods: `def method_name` -> User#method_name
-      const instanceMethodRegex = /^\s*(?:(?:private|protected|public)\s+)?def\s+([a-zA-Z_][a-zA-Z0-9_]*[!?=]?)/;
-      const instanceMethodMatch = instanceMethodRegex.exec(line);
-      if (instanceMethodMatch) {
-        const methodName = instanceMethodMatch[1];
-        const currentNamespace = getCurrentNamespace(stack);
-        const fullName = currentNamespace ? `${currentNamespace}#${methodName}` : methodName;
-        // Capture entire definition from 'def' to end of method name
-        const defStartIndex = instanceMethodMatch.index;
-        const nameIndex = offset + defStartIndex;
-        const entireDefLength = instanceMethodMatch[0].length;
-        const symbolIndex = symbols.length;
-        symbols.push({ name: fullName, index: nameIndex, length: entireDefLength, isPrivate: inlinePrivacy ?? isCurrentlyPrivate });
-          // If the instance method is a one-liner, expand to cover the whole line and skip stacking
-          const afterDef = line.slice(instanceMethodMatch.index + instanceMethodMatch[0].length);
-          if (/\bend\b/.test(afterDef)) {
-            const newLength = line.length - instanceMethodMatch.index + (isLastLine ? 0 : lineEndingLength);
-            symbols[symbolIndex].length = Math.max(symbols[symbolIndex].length, newLength);
-          } else {
-            stack.push({ type: 'other', symbolIndex });
-          }
-        offset += line.length + (isLastLine ? 0 : lineEndingLength);
-        continue;
+    // Detect instance methods: `def method_name` -> User#method_name
+    const instanceMethodRegex = /^\s*(?:(?:private|protected|public)\s+)?def\s+([a-zA-Z_][a-zA-Z0-9_]*[!?=]?)/;
+    const instanceMethodMatch = instanceMethodRegex.exec(line);
+    if (instanceMethodMatch) {
+      const methodName = instanceMethodMatch[1];
+      const currentNamespace = getCurrentNamespace(stack);
+      const fullName = currentNamespace ? `${currentNamespace}#${methodName}` : methodName;
+      const defStartIndex = instanceMethodMatch.index;
+      const nameIndex = offset + defStartIndex;
+      const entireDefLength = instanceMethodMatch[0].length;
+      const symbolIndex = symbols.length;
+      symbols.push({ name: fullName, index: nameIndex, length: entireDefLength, isPrivate: inlinePrivacy ?? isCurrentlyPrivate });
+      const afterDef = line.slice(instanceMethodMatch.index + instanceMethodMatch[0].length);
+      if (/\bend\b/.test(afterDef)) {
+        const newLength = line.length - instanceMethodMatch.index + (isLastLine ? 0 : lineEndingLength);
+        symbols[symbolIndex].length = Math.max(symbols[symbolIndex].length, newLength);
+      } else {
+        stack.push({ type: 'other', symbolIndex });
       }
+      offset += line.length + (isLastLine ? 0 : lineEndingLength);
+      continue;
+    }
 
     // Generic Ruby do/end block tracking (e.g., `included do`)
     // so closing `end` does not accidentally pop class/module scope.
@@ -340,30 +335,30 @@ export function compareMatches(nameA: string, nameB: string, searchTerm: string)
 }
 
 export function isClassOrModule(symbolName: string): boolean {
-	// Scopes and class methods always contain a dot
-	if (symbolName.includes('.')) {
-		return false;
-	}
+  // Scopes and class methods always contain a dot
+  if (symbolName.includes('.')) {
+    return false;
+  }
 
-	// Instance methods always contain a #
-	if (symbolName.includes('#')) {
-		return false;
-	}
+  // Instance methods always contain a #
+  if (symbolName.includes('#')) {
+    return false;
+  }
 
-	// Check if it's a constant (ends with UPPERCASE after ::)
-	const parts = symbolName.split('::');
-	const lastPart = parts[parts.length - 1];
-	// If last part is all uppercase, it's a constant
-	if (lastPart === lastPart.toUpperCase() && lastPart.length > 0 && /[A-Z]/.test(lastPart)) {
-		return false;
-	}
+  // Check if it's a constant (ends with UPPERCASE after ::)
+  const parts = symbolName.split('::');
+  const lastPart = parts[parts.length - 1];
+  // If last part is all uppercase, it's a constant
+  if (lastPart === lastPart.toUpperCase() && lastPart.length > 0 && /[A-Z]/.test(lastPart)) {
+    return false;
+  }
 
-	// Ruby class/module names must start with an uppercase letter.
-	// Bare lowercase names are orphaned method symbols (parser couldn't determine enclosing class).
-	if (!/^[A-Z]/.test(lastPart)) {
-		return false;
-	}
+  // Ruby class/module names must start with an uppercase letter.
+  // Bare lowercase names are orphaned method symbols (parser couldn't determine enclosing class).
+  if (!/^[A-Z]/.test(lastPart)) {
+    return false;
+  }
 
-	// Otherwise it's a class or module
-	return true;
+  // Otherwise it's a class or module
+  return true;
 }

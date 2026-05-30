@@ -447,6 +447,4 @@ async function showRubySymbolPicker() {
 			disposables.forEach(d => d.dispose());
 		})
 	];
-
-	picker.show();
 }
