@@ -1,6 +1,18 @@
 # Change Log
 ## [Unreleased]
 
+## [0.0.20] - 2026-05-30
+
+### Fixed
+- **Cache pruning performance**: `pruneIfNeeded` was O(n²) due to re-serializing the entire accumulated object per entry. Now estimates entry sizes individually (O(n)).
+- **Debounced save leaked promises**: When rapid file changes reset the debounce timer, previous callers' promises never resolved. All pending resolvers are now collected and resolved together.
+- **Picker shown twice**: `picker.show()` was called at both the beginning and end of `showRubySymbolPicker()`, causing potential flickering.
+
+### Changed
+- Removed dead `parseFile` method from `SymbolCache` (duplicated `extractSymbolsFromDocument`).
+- `getSymbolCount()` no longer allocates a temporary array; sums lengths in-place.
+- Fixed inconsistent indentation in the parser's method-detection blocks.
+
 ## [0.0.19] - 2026-04-25
 
 ### Fixed
