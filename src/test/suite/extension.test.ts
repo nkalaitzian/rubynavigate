@@ -557,3 +557,47 @@ test('Finds classes with underscores in name', () => {
 	const names = parseRubySymbolsFromText(text).map(s => s.name);
 	assert.ok(names.includes('My_Class'));
 });
+
+test('Fill-from-active: using a qualified name as search narrows to that namespace', () => {
+	// Simulates the user pressing Right to fill the search bar with a symbol name,
+	// then the picker filtering results with that full name as the search term.
+	const allSymbols = [
+		'Admin', 'Admin::User', 'Admin::User::Role', 'Admin::Settings',
+		'User', 'User::Profile', 'SuperAdmin'
+	];
+
+	// Filling "Admin::User" into the search bar should match symbols containing that string
+	const filtered = allSymbols.filter(name => matchesRubySymbol(name, 'Admin::User'));
+	assert.ok(filtered.includes('Admin::User'));
+	assert.ok(filtered.includes('Admin::User::Role'));
+	assert.ok(!filtered.includes('Admin'));
+	assert.ok(!filtered.includes('Admin::Settings'));
+	assert.ok(!filtered.includes('User'));
+	assert.ok(!filtered.includes('User::Profile'));
+});
+
+test('Fill-from-active: using a method name as search finds the method', () => {
+	const allSymbols = [
+		'User', 'User#login', 'User#logout', 'User.admins', 'Admin::User#login'
+	];
+
+	// Filling "User#login" into the search bar
+	const filtered = allSymbols.filter(name => matchesRubySymbol(name, 'User#login'));
+	assert.ok(filtered.includes('User#login'));
+	assert.ok(filtered.includes('Admin::User#login')); // substring match
+	assert.ok(!filtered.includes('User'));
+	assert.ok(!filtered.includes('User#logout'));
+	assert.ok(!filtered.includes('User.admins'));
+});
+
+test('Fill-from-active: sorting with a qualified name prioritizes exact match', () => {
+	const symbols = ['Admin::User', 'Admin::User::Role', 'SuperAdmin::User'];
+
+	// Sort by match quality for "Admin::User"
+	symbols.sort((a, b) => compareMatches(a, b, 'Admin::User'));
+
+	// Exact match first, then prefix, then substring
+	assert.strictEqual(symbols[0], 'Admin::User');
+	assert.strictEqual(symbols[1], 'Admin::User::Role');
+	assert.strictEqual(symbols[2], 'SuperAdmin::User');
+});

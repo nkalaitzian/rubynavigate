@@ -70,7 +70,7 @@ Quickly jump to Ruby classes, modules, constants, Rails scopes, and methods by t
 3. Type the class or module name you're looking for
 4. Navigate results:
    - **Enter**: Jump to the file and close the picker
-   - **Right Arrow**: Preview the file (without closing the picker)
+   - **Right Arrow**: Fill the search bar with the highlighted entry's name (drill into a namespace)
    - **Ctrl+Right Arrow**: Open in background (without closing the picker or taking focus)
    - **X button** (on recently opened items): Remove from history
    - Prefix your query with `::` to constrain the search to root-level symbols (e.g., `::Foo::Bar` will ignore `Baz::Foo::Bar`).

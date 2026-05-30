@@ -24,7 +24,7 @@
   - Classes/modules: `class User < ApplicationRecord` → `"User"`
   - Nested: `class Admin::User` → tracks absolute position with `::`
   - Constants: `MAX_USERS = 10` → includes enclosing namespace (`User::MAX_USERS`)
-  - Rails scopes: `scope :active, ->` → captured as `User.active` (dot notation, not `::`
+  - Rails scopes: `scope :active, ->` → captured as `User.active` (dot notation, not `::`) — indexed but hidden from picker until user types a query
 - **Namespace resolution**: Stack-based tracking respects `::` qualifiers (absolute paths reset context)
 - **Match functions**: `matchesRubySymbol()` (fuzzy), `compareMatches()` (scoring), `isClassOrModule()` (filtering)
 
@@ -40,7 +40,7 @@
 npm run compile          # TypeScript → dist/extension.js (webpack)
 npm run watch           # Auto-recompile on file changes (background task)
 npm run watch-tests    # Auto-rerun tests on changes
-npm run test           # Jest test suite
+npm run test           # Mocha test suite (compile-tests + mocha --ui tdd)
 npm run release        # Publish to VS Code Marketplace
 ```
 
@@ -69,7 +69,7 @@ Tests call **real implementation functions** (not mocks) to ensure correctness a
 | **Scope notation** | `User.active` (not `User::active`) | Distinguishes Rails scopes from nested classes |
 | **Prefix-reset on `::` absolute** | `class ::Admin` ignores outer context | Supports both `User::Admin` and root-level reopening |
 | **Lazy picker opening** | Show immediately, load symbols in background | Users expect instant UI response |
-| **Group-based filtering** | Empty query shows Classes/Modules only | Reduces picker clutter; users rarely need all scopes/constants |
+| **Group-based filtering** | Empty query shows Classes/Modules only | Reduces picker clutter; scopes/constants are still indexed but hidden until the user types a query |
 | **Batch processing** | Process 50 files per tick + `setTimeout(0)` | Prevents UI freeze on large workspaces |
 | **File-path-first discovery** | Check Rails dirs before workspace scan | 95%+ hits in common paths; faster on large projects |
 
@@ -79,10 +79,13 @@ Tests call **real implementation functions** (not mocks) to ensure correctness a
 - `rubynavigate.maxCurrentlyOpenItems` (default: 10) - Currently open section size
 - `rubynavigate.maxRecentlyOpenedItems` (default: 10) - Recently opened section size
 - `rubynavigate.excludeDirectories` (default: `["node_modules", ".git", "vendor", "tmp", "dist", "out"]`) - Scan exclusions
+- `rubynavigate.priorityDirectories` (default: `["app/models", "app/controllers", "app/services", "app/jobs", "app/helpers", "app", "lib"]`) - Directories indexed first for faster perceived performance
+- `rubynavigate.maxCacheSizeMB` (default: 100) - Max disk cache size; oldest entries pruned when exceeded
+- `rubynavigate.fileIndexTimeoutMs` (default: 5000) - Per-file indexing timeout; slow files are skipped with a warning
 
 ### Extension Points
-- Commands: `rubynavigate.find`, `rubynavigate.previewActive`, `rubynavigate.openInBackground`, `rubynavigate.copyQualifiedName`
-- Keybindings via `keybindings.json` (documented in README)
+- Commands: `rubynavigate.find`, `rubynavigate.fillFromActive`, `rubynavigate.openInBackground`, `rubynavigate.copyQualifiedName`, `rubynavigate.rebuildCache`
+- Keybindings: `Right` (fill search from active), `Ctrl+Right` (open in background) — active when picker is open
 
 ## Common Extension Tasks & Implementation Notes
 
@@ -118,5 +121,5 @@ Implementation in `extension.ts`:
 - **Node**: 18.x / 20.x (CI tests both)
 - **TypeScript**: ES2020 target, strict mode enabled
 - **Bundler**: Webpack (config in `webpack.config.js`)
-- **Test runner**: Node.js with Jest
-- **Linting/Format**: Consider adding ESLint if contributing new modules
+- **Test runner**: Mocha with `tdd` UI (`npm run compile-tests && mocha --ui tdd`)
+- **Linting/Format**: ESLint available via `npm run lint`

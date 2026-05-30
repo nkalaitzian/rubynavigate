@@ -2,7 +2,7 @@
   "name": "rubynavigate",
   "displayName": "RubyNavigate",
   "description": "Navigate Ruby projects with ease - quickly jump to classes and modules using fuzzy search and fully qualified names",
-  "version": "0.0.20",
+  "version": "0.0.21",
   "publisher": "pastouris",
   "icon": "logo.png",
   "license": "GPL-3.0",
@@ -38,8 +38,8 @@
         "title": "RubyNavigate: Find Class/Module"
       },
       {
-        "command": "rubynavigate.previewActive",
-        "title": "RubyNavigate: Preview Active Selection"
+        "command": "rubynavigate.fillFromActive",
+        "title": "RubyNavigate: Fill Search from Active Selection"
       },
       {
         "command": "rubynavigate.copyQualifiedName",
@@ -115,7 +115,7 @@
     },
     "keybindings": [
       {
-        "command": "rubynavigate.previewActive",
+        "command": "rubynavigate.fillFromActive",
         "key": "right",
         "when": "extension.rubynavigate.pickerActive && inQuickOpen"
       },

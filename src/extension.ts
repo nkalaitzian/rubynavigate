@@ -42,12 +42,12 @@ export function activate(context: ExtensionContext) {
 		await showRubySymbolPicker();
 	}));
 
-	// Command to preview the currently active selection in the picker (triggered by Right arrow)
-	context.subscriptions.push(commands.registerCommand('rubynavigate.previewActive', async () => {
+	// Command to fill the search bar with the highlighted entry's name (triggered by Right arrow)
+	context.subscriptions.push(commands.registerCommand('rubynavigate.fillFromActive', async () => {
 		if (currentPicker && currentPicker.activeItems && currentPicker.activeItems.length > 0) {
 			const picked = currentPicker.activeItems[0] as RubyPickItem;
 			if (picked && picked.symbol) {
-				await previewRubyLocation(picked.symbol);
+				currentPicker.value = picked.symbol.name;
 			}
 		}
 	}));
@@ -194,15 +194,6 @@ async function openRubyLocation(match: { uri: Uri; range?: Range }) {
 	const filtered = history.filter(f => f !== filePath);
 	const updated = [filePath, ...filtered].slice(0, 30); // Keep last 30
 	await extensionContext.globalState.update('openedFiles', updated);
-}
-
-async function previewRubyLocation(match: { uri: Uri; range?: Range }) {
-	const document = await workspace.openTextDocument(match.uri);
-	const editor = await window.showTextDocument(document, { preview: true, preserveFocus: true });
-	if (match.range) {
-		editor.selection = new Selection(match.range.start, match.range.end);
-		editor.revealRange(match.range, TextEditorRevealType.InCenter);
-	}
 }
 
 type RubyPickItem = QuickPickItem & { symbol?: RubySymbol };

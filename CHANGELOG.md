@@ -1,6 +1,14 @@
 # Change Log
 ## [Unreleased]
 
+## [0.0.21] - 2026-05-30
+
+### Changed
+- **Right Arrow behavior**: Pressing Right Arrow in the picker now fills the search bar with the highlighted entry's fully qualified name (instead of previewing the file). This makes it easy to drill into a namespace — highlight `Admin::User`, press Right, and the picker immediately narrows to symbols under that name.
+
+### Removed
+- The file preview shortcut (previously Right Arrow) has been removed. Use Enter to navigate directly, or Ctrl+Right Arrow to open in background.
+
 ## [0.0.20] - 2026-05-30
 
 ### Fixed
