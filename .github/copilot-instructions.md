@@ -124,3 +124,8 @@ Implementation in `extension.ts`:
 - **Bundler**: Webpack (config in `webpack.config.js`)
 - **Test runner**: Mocha with `tdd` UI (`npm run compile-tests && mocha --ui tdd`)
 - **Linting/Format**: ESLint available via `npm run lint`
+
+## Project Plans & Prompts
+- Plans live in `.github/prompts/` as `.prompt.md` files
+- File naming convention: `YYYY-MM-DD-<descriptive-name>.prompt.md` (date of creation prepended)
+- These are reusable VS Code Copilot prompt files that can be invoked from the chat
