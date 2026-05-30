@@ -14,6 +14,8 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: write
+    env:
+      OVSX_TOKEN: ${{ secrets.OVSX_TOKEN }}
 
     steps:
       - name: Checkout
@@ -39,7 +41,12 @@ jobs:
         run: vsce publish -p ${{ secrets.VSCE_TOKEN }} --packagePath *.vsix
 
       - name: Publish to Open VSX
-        run: ovsx publish *.vsix -p ${{ secrets.OVSX_TOKEN }}
+        if: env.OVSX_TOKEN != ''
+        run: ovsx publish *.vsix -p "$OVSX_TOKEN"
+
+      - name: Skip Open VSX publish (missing token)
+        if: env.OVSX_TOKEN == ''
+        run: echo "OVSX_TOKEN is not set; skipping Open VSX publish."
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v1
