@@ -7,8 +7,9 @@
 <p align="center">
   <a href="https://github.com/nkalaitzian/rubynavigate/actions/workflows/test.yml"><img src="https://github.com/nkalaitzian/rubynavigate/actions/workflows/test.yml/badge.svg" alt="Tests" /></a>
   <a href="https://marketplace.visualstudio.com/items?itemName=pastouris.rubynavigate"><img src="https://vsmarketplacebadges.dev/version/pastouris.rubynavigate.svg" alt="VS Code Marketplace Version" /></a>
+  <a href="https://marketplace.visualstudio.com/items?itemName=pastouris.rubynavigate"><img src="https://vsmarketplacebadges.dev/installs-short/pastouris.rubynavigate.svg" alt="VS Code Marketplace Installs" /></a>
   <a href="https://open-vsx.org/extension/pastouris/rubynavigate"><img src="https://img.shields.io/open-vsx/v/pastouris/rubynavigate" alt="Open-VSX Version" /></a>
-  <a href="https://marketplace.visualstudio.com/items?itemName=pastouris.rubynavigate"><img src="https://vsmarketplacebadges.dev/installs-short/pastouris.rubynavigate.svg" alt="Installs" /></a>
+  <a href="https://open-vsx.org/extension/pastouris/rubynavigate"><img src="https://img.shields.io/open-vsx/dt/pastouris/rubynavigate" alt="Open-VSX Downloads" /></a>
   <a href="https://github.com/nkalaitzian/rubynavigate/tags"><img src="https://img.shields.io/github/v/tag/nkalaitzian/rubynavigate?label=latest%20tag" alt="Latest Tag" /></a>
   <a href="https://github.com/nkalaitzian/rubynavigate/issues"><img src="https://img.shields.io/github/issues/nkalaitzian/rubynavigate" alt="Open Issues" /></a>
   <a href="LICENSE"><img src="https://img.shields.io/github/license/nkalaitzian/rubynavigate" alt="License" /></a>
