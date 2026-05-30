@@ -1,4 +1,4 @@
-import { workspace, Uri, Range, FileSystemWatcher, Disposable, Progress, window, ProgressLocation } from 'vscode';
+import { workspace, Uri, Range, FileSystemWatcher, Disposable, Progress, window, ProgressLocation, CancellationToken } from 'vscode';
 import { parseRubySymbolsFromText } from './rubyParser';
 import { RubySymbol } from './rubyLocator';
 import * as fs from 'fs';
@@ -311,7 +311,7 @@ export class SymbolCache {
     return this.rebuildIndex();
   }
 
-  async rebuildIndex(progress?: Progress<{ message?: string; increment?: number }>): Promise<void> {
+  async rebuildIndex(progress?: Progress<{ message?: string; increment?: number }>, token?: CancellationToken): Promise<void> {
     this.isIndexing = true;
     this.indexingStartMs = Date.now();
     this.totalFiles = 0;
@@ -320,7 +320,7 @@ export class SymbolCache {
     // Load existing cache from disk first
     await this.loadFromDisk();
 
-    this.indexingPromise = this.performIndexing(progress);
+    this.indexingPromise = this.performIndexing(progress, token);
     await this.indexingPromise;
 
     // Save updated cache to disk
@@ -330,7 +330,7 @@ export class SymbolCache {
     this.indexingPromise = null;
   }
 
-  async clearAndRebuildIndex(progress?: Progress<{ message?: string; increment?: number }>): Promise<void> {
+  async clearAndRebuildIndex(progress?: Progress<{ message?: string; increment?: number }>, token?: CancellationToken): Promise<void> {
     this.isIndexing = true;
     this.indexingStartMs = Date.now();
     this.totalFiles = 0;
@@ -349,7 +349,7 @@ export class SymbolCache {
       }
     }
 
-    this.indexingPromise = this.performIndexing(progress);
+    this.indexingPromise = this.performIndexing(progress, token);
     await this.indexingPromise;
 
     // Save updated cache to disk
@@ -359,7 +359,7 @@ export class SymbolCache {
     this.indexingPromise = null;
   }
 
-  private async performIndexing(progress?: Progress<{ message?: string; increment?: number }>): Promise<void> {
+  private async performIndexing(progress?: Progress<{ message?: string; increment?: number }>, token?: CancellationToken): Promise<void> {
     const config = workspace.getConfiguration('rubynavigate');
     const excludeDirs = config.get<string[]>('excludeDirectories', ['node_modules', '.git', 'vendor', 'tmp', 'dist', 'out']);
     const excludePattern = excludeDirs.length > 0 ? `**/{${excludeDirs.join(',')}}/**` : '';
@@ -385,6 +385,11 @@ export class SymbolCache {
     // Process files in batches to avoid blocking
     const batchSize = 50;
     for (let i = 0; i < prioritizedFiles.length; i += batchSize) {
+      // Check for cancellation between batches
+      if (token?.isCancellationRequested) {
+        break;
+      }
+
       const batch = prioritizedFiles.slice(i, i + batchSize);
       await Promise.all(batch.map(uri => this.parseFileIfNeeded(uri)));
       this.processedFiles = Math.min(i + batchSize, totalFiles);

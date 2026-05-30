@@ -1,4 +1,4 @@
-import { window, commands, ExtensionContext, workspace, Range, Selection, TextEditorRevealType, Uri, QuickPickItem, QuickPickItemKind, ThemeIcon, ProgressLocation, env, StatusBarAlignment, StatusBarItem } from 'vscode';
+import { window, commands, ExtensionContext, workspace, Range, Selection, TextEditorRevealType, Uri, QuickPickItem, QuickPickItemKind, ThemeIcon, ProgressLocation, env, StatusBarAlignment, StatusBarItem, CancellationToken } from 'vscode';
 import { listRubySymbols, RubySymbol, setSymbolCache } from './rubyLocator';
 import { matchesRubySymbol, compareMatches, isClassOrModule, parseRubySymbolsFromText } from './rubyParser';
 import { SymbolCache } from './symbolCache';
@@ -46,12 +46,16 @@ export function activate(context: ExtensionContext) {
     window.withProgress({
       location: ProgressLocation.Notification,
       title: "RubyNavigate: Indexing symbols",
-      cancellable: false
-    }, async (progress: ProgressReporter) => {
-      await symbolCache.rebuildIndex(progress);
+      cancellable: true
+    }, async (progress: ProgressReporter, token: CancellationToken) => {
+      await symbolCache.rebuildIndex(progress, token);
       const fileCount = symbolCache.getFileCount();
       const symbolCount = symbolCache.getSymbolCount();
-      console.log(`RubyNavigate: Indexed ${fileCount} files with ${symbolCount} symbols`);
+      if (token.isCancellationRequested) {
+        console.log(`RubyNavigate: Indexing cancelled. Partial index: ${fileCount} files with ${symbolCount} symbols`);
+      } else {
+        console.log(`RubyNavigate: Indexed ${fileCount} files with ${symbolCount} symbols`);
+      }
       updateStatusBarIdle();
       return;
     }).then(undefined, (err: Error) => {
@@ -134,12 +138,16 @@ async function rebuildSymbolCache() {
   await window.withProgress({
     location: ProgressLocation.Notification,
     title: "RubyNavigate: Rebuilding symbol cache",
-    cancellable: false
-  }, async (progress: ProgressReporter) => {
-    await symbolCache.clearAndRebuildIndex(progress);
+    cancellable: true
+  }, async (progress: ProgressReporter, token: CancellationToken) => {
+    await symbolCache.clearAndRebuildIndex(progress, token);
     const fileCount = symbolCache.getFileCount();
     const symbolCount = symbolCache.getSymbolCount();
-    window.showInformationMessage(`RubyNavigate: Rebuilt cache with ${fileCount} files and ${symbolCount} symbols`);
+    if (token.isCancellationRequested) {
+      window.showInformationMessage(`RubyNavigate: Rebuild cancelled. Partial cache: ${fileCount} files and ${symbolCount} symbols`);
+    } else {
+      window.showInformationMessage(`RubyNavigate: Rebuilt cache with ${fileCount} files and ${symbolCount} symbols`);
+    }
     console.log(`RubyNavigate: Rebuilt cache with ${fileCount} files and ${symbolCount} symbols`);
     updateStatusBarIdle();
     return;

@@ -1,6 +1,11 @@
 # Change Log
 ## [Unreleased]
 
+## [0.0.23] - 2026-05-30
+
+### Added
+- **Cancellable Indexing**: The indexing progress notification now has a Cancel button. Cancelling stops indexing early while keeping all symbols parsed so far available for navigation.
+
 ## [0.0.22] - 2026-05-30
 
 ### Added
