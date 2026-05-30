@@ -1,6 +1,11 @@
 # Change Log
 ## [Unreleased]
 
+## [0.0.22] - 2026-05-30
+
+### Added
+- **Status Bar Indexing Indicator**: A status bar item now shows indexing progress (`$(sync~spin) Indexing 500/2000...`) during symbol indexing and displays the total symbol count (`$(ruby) 2000 symbols`) when complete. Clicking it opens the symbol picker.
+
 ## [0.0.21] - 2026-05-30
 
 ### Changed

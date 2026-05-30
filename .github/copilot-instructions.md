@@ -9,6 +9,7 @@
 - **Entry point** for VS Code extension; manages activation and command registration
 - **Picker UI**: Creates and updates Quick Pick with smart filtering, grouping (Currently Open → Recently Opened → Workspace Results)
 - **History management**: Persists opened files in extension global state (max 30 items)
+- **Status Bar**: Shows indexing progress (`$(sync~spin) Indexing 500/2000...`) during background indexing, then displays total symbol count (`$(ruby) 2000 symbols`) when done; clicking opens the picker
 - **Key APIs**: `window.createQuickPick()`, `workspace.openTextDocument()`, `commands.registerCommand()`
 
 ### 2. **Symbol Cache** (`src/symbolCache.ts`) - **Critical for Performance**
