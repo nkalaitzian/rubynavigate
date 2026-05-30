@@ -1,4 +1,4 @@
-import { window, commands, ExtensionContext, workspace, Range, Selection, TextEditorRevealType, Uri, QuickPickItem, QuickPick, QuickPickItemKind, ThemeIcon, ProgressLocation, env } from 'vscode';
+import { window, commands, ExtensionContext, workspace, Range, Selection, TextEditorRevealType, Uri, QuickPickItem, QuickPickItemKind, ThemeIcon, ProgressLocation, env } from 'vscode';
 import { listRubySymbols, RubySymbol, setSymbolCache } from './rubyLocator';
 import { matchesRubySymbol, compareMatches, isClassOrModule, parseRubySymbolsFromText } from './rubyParser';
 import { SymbolCache } from './symbolCache';
@@ -307,9 +307,18 @@ async function showRubySymbolPicker() {
 		const maxCurrently = config.get<number>('maxCurrentlyOpenItems', 10) || 10;
 		const maxRecently = config.get<number>('maxRecentlyOpenedItems', 10) || 10;
 
+		// When query is empty, always restrict currently-open and recently-opened sections
+		// to classes/modules only (regardless of the global filter already applied).
+		// This prevents orphaned method names from appearing in those sections.
+		const isEmptyQuery = value.trim().length === 0;
+
 		// Separate into three categories
-		const current = filtered.filter(symbol => currentlyOpen.has(symbol.uri.fsPath));
-		const previous = filtered.filter(symbol => recentlyOpened.includes(symbol.uri.fsPath));
+		const current = filtered
+			.filter(symbol => currentlyOpen.has(symbol.uri.fsPath))
+			.filter(symbol => !isEmptyQuery || isClassOrModule(symbol.name));
+		const previous = filtered
+			.filter(symbol => recentlyOpened.includes(symbol.uri.fsPath))
+			.filter(symbol => !isEmptyQuery || isClassOrModule(symbol.name));
 		const other = filtered.filter(symbol =>
 			!currentlyOpen.has(symbol.uri.fsPath) && !recentlyOpened.includes(symbol.uri.fsPath)
 		);

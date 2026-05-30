@@ -1,6 +1,33 @@
 # Change Log
 ## [Unreleased]
 
+## [0.0.19] - 2026-04-25
+
+### Fixed
+- **Assignment block stack corruption**: Multi-line assignment blocks (`x = if ... end`, `x = case ... end`, `x = begin ... end`) no longer consume the closing `end` of the enclosing method, which previously caused subsequent methods in the same class to lose their namespace.
+- **`private def` inline modifier skipped methods**: The `private def method_name` pattern (inline privacy modifier) was entirely skipped by the parser. The method was not detected, and its `end` corrupted the stack. Now correctly parsed with proper per-method privacy tracking.
+- **False `do` detection in comments**: Trailing comments containing the word `do` (e.g., `# TODO: do something`) no longer push phantom stack entries that corrupt namespace resolution for later symbols.
+- **Class/module names with underscores not detected**: Classes like `My_Class` were invisible to the parser due to missing underscore support in the name regex.
+
+## [0.0.18] - 2026-03-10
+
+### Changed
+- Empty-query results are now consistently class/module-focused across grouped sections.
+- **Currently open** and **Recently opened** sections now show only class/module symbols until you start typing.
+
+### Fixed
+- Prevented method symbols from appearing in grouped empty-query results (including instance-method forms like `User#authenticate`).
+- Reduced orphaned lowercase method-name noise in empty-query results by tightening class/module classification.
+
+## [0.0.17] - 2026-02-24
+
+### Added
+- **Configurable File Index Timeout**: Added `rubynavigate.fileIndexTimeoutMs` setting (default: `5000`) to control how long RubyNavigate waits before skipping a slow file during indexing.
+- **Timeout Warning Notification**: When a file exceeds the configured indexing timeout, RubyNavigate now shows a warning notification with the specific file path.
+
+### Changed
+- Slow files that exceed the per-file timeout are skipped during indexing so other files continue indexing without delay.
+
 ## [0.0.16] - 2026-02-20
 
 ### Added

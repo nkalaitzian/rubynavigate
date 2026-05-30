@@ -381,6 +381,25 @@ suite('Ruby symbol detection', () => {
 	});
 });
 
+	test('isClassOrModule excludes instance methods with # notation', () => {
+		assert.strictEqual(isClassOrModule('User#authenticate'), false);
+		assert.strictEqual(isClassOrModule('User::Admin#login'), false);
+		assert.strictEqual(isClassOrModule('Order#total_price'), false);
+	});
+
+	test('isClassOrModule excludes bare lowercase method names (orphaned parser symbols)', () => {
+		assert.strictEqual(isClassOrModule('fbm?'), false);
+		assert.strictEqual(isClassOrModule('c2c?'), false);
+		assert.strictEqual(isClassOrModule('authenticate'), false);
+		assert.strictEqual(isClassOrModule('total_price'), false);
+	});
+
+	test('isClassOrModule still accepts valid class and module names', () => {
+		assert.strictEqual(isClassOrModule('User'), true);
+		assert.strictEqual(isClassOrModule('User::Admin'), true);
+		assert.strictEqual(isClassOrModule('MyApp::Models::Order'), true);
+	});
+
 test('Handles one-line method definitions', () => {
 	const text = [
  		'class Meme',
@@ -435,4 +454,106 @@ test('Keeps module namespace after included do/end for instance methods', () => 
 	const names = parseRubySymbolsFromText(text).map(s => s.name);
 	assert.ok(names.includes('User::Authorization#admin?'));
 	assert.ok(!names.includes('admin?'));
+});
+
+test('Keeps class namespace after assignment block (x = if/case/begin)', () => {
+	const text = [
+		'class Ecommerce::Charger',
+		'  def self.payment_for(chargeable, amount:, reason:)',
+		'    exchange_rate = if domain_currency != "EUR"',
+		'                      get_rate("EUR")',
+		'                    else',
+		'                      1.0',
+		'                    end',
+		'',
+		'    Ecommerce::Charge.find_or_create_by(chargeable: chargeable)',
+		'  end',
+		'',
+		'  def self.paid_for?(chargeable, amount: nil)',
+		'    Ecommerce::Charge.where(chargeable: chargeable).any?',
+		'  end',
+		'',
+		'  def self.refund_all_charges_for(chargeable, issuer: nil)',
+		'    Ecommerce::Charge.where(chargeable: chargeable).find_each do |charge|',
+		'      charge.refund!(issuer: issuer)',
+		'    end',
+		'  end',
+		'end',
+		''
+	].join('\n');
+
+	const names = parseRubySymbolsFromText(text).map(s => s.name);
+	assert.ok(names.includes('Ecommerce::Charger'));
+	assert.ok(names.includes('Ecommerce::Charger.payment_for'));
+	assert.ok(names.includes('Ecommerce::Charger.paid_for?'));
+	assert.ok(names.includes('Ecommerce::Charger.refund_all_charges_for'));
+});
+
+test('Handles private def inline modifier pattern', () => {
+	const text = [
+		'class User',
+		'  def login',
+		'    true',
+		'  end',
+		'',
+		'  private def authenticate(password)',
+		'    password == "secret"',
+		'  end',
+		'',
+		'  def public_method',
+		'    true',
+		'  end',
+		'end',
+		''
+	].join('\n');
+
+	const symbols = parseRubySymbolsFromText(text);
+	const names = symbols.map(s => s.name);
+	// All three methods should be detected
+	assert.ok(names.includes('User#login'));
+	assert.ok(names.includes('User#authenticate'));
+	assert.ok(names.includes('User#public_method'));
+	// authenticate should be private, others should not
+	const authSym = symbols.find(s => s.name === 'User#authenticate');
+	assert.ok(authSym, 'authenticate should exist');
+	assert.strictEqual(authSym!.isPrivate, true);
+	const loginSym = symbols.find(s => s.name === 'User#login');
+	assert.strictEqual(loginSym!.isPrivate, false);
+	// public_method should NOT be private (inline modifier only affects one method)
+	const pubSym = symbols.find(s => s.name === 'User#public_method');
+	assert.strictEqual(pubSym!.isPrivate, false);
+});
+
+test('Does not push phantom stack entry from do in comments', () => {
+	const text = [
+		'class Worker',
+		'  # We need to do this carefully',
+		'  def perform',
+		'    true',
+		'  end',
+		'',
+		'  def cleanup',
+		'    true',
+		'  end',
+		'end',
+		''
+	].join('\n');
+
+	const names = parseRubySymbolsFromText(text).map(s => s.name);
+	assert.ok(names.includes('Worker'));
+	assert.ok(names.includes('Worker#perform'));
+	assert.ok(names.includes('Worker#cleanup'));
+	// cleanup should have Worker namespace (not lost due to phantom do)
+	assert.ok(!names.includes('cleanup'));
+});
+
+test('Finds classes with underscores in name', () => {
+	const text = [
+		'class My_Class',
+		'end',
+		''
+	].join('\n');
+
+	const names = parseRubySymbolsFromText(text).map(s => s.name);
+	assert.ok(names.includes('My_Class'));
 });

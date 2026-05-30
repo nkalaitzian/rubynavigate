@@ -37,10 +37,32 @@
 			"problemMatcher": []
 		},
 		{
-			"type": "npm",
-			"script": "release",
+			"type": "shell",
+			"command": "npm run release",
 			"label": "Release Extension",
 			"problemMatcher": [],
+			"options": {
+				"env": {
+					"PATH": "${env:HOME}/.local/share/mise/shims:${env:PATH}"
+				}
+			},
+			"presentation": {
+				"reveal": "always",
+				"panel": "dedicated",
+				"focus": true,
+				"clear": true
+			}
+		},
+		{
+			"type": "shell",
+			"command": "npm run release-dry-run",
+			"label": "Release Extension (Dry Run)",
+			"problemMatcher": [],
+			"options": {
+				"env": {
+					"PATH": "${env:HOME}/.local/share/mise/shims:${env:PATH}"
+				}
+			},
 			"presentation": {
 				"reveal": "always",
 				"panel": "dedicated",
