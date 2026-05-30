@@ -1,6 +1,11 @@
 # Change Log
 ## [Unreleased]
 
+## [0.0.24] - 2026-05-30
+
+### Added
+- **Fuzzy/CamelCase Matching**: Type uppercase initials or word prefixes to match symbols by their CamelCase structure. For example, `UsAd` matches `User::Admin`, `ARC` matches `ActiveRecord::Callbacks`, and `rp` matches `reset_password`. CamelCase results rank below exact, prefix, and substring matches.
+
 ## [0.0.23] - 2026-05-30
 
 ### Added

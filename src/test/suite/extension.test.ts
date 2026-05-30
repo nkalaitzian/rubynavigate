@@ -1,6 +1,6 @@
 import * as assert from 'assert';
 
-import { matchesRubySymbol, parseRubySymbolsFromText, compareMatches, isClassOrModule } from '../../rubyParser';
+import { matchesRubySymbol, parseRubySymbolsFromText, compareMatches, isClassOrModule, matchesCamelCase } from '../../rubyParser';
 
 suite('Ruby symbol detection', () => {
 	test('Finds simple class and matches filter terms', () => {
@@ -600,4 +600,61 @@ test('Fill-from-active: sorting with a qualified name prioritizes exact match', 
 	assert.strictEqual(symbols[0], 'Admin::User');
 	assert.strictEqual(symbols[1], 'Admin::User::Role');
 	assert.strictEqual(symbols[2], 'SuperAdmin::User');
+});
+
+test('CamelCase matching: basic uppercase initials', () => {
+	assert.strictEqual(matchesCamelCase('User::Admin', 'UA'), true);
+	assert.strictEqual(matchesCamelCase('User::Admin', 'UsAd'), true);
+	assert.strictEqual(matchesCamelCase('ActiveRecord::Base', 'ARB'), true);
+	assert.strictEqual(matchesCamelCase('ActiveRecord::Callbacks', 'ARC'), true);
+	assert.strictEqual(matchesCamelCase('ApplicationController', 'AC'), true);
+	assert.strictEqual(matchesCamelCase('User::Admin', 'XY'), false);
+	assert.strictEqual(matchesCamelCase('User::Admin', 'AU'), false); // wrong order
+});
+
+test('CamelCase matching: works with methods and scopes', () => {
+	assert.strictEqual(matchesCamelCase('User#authenticate', 'Ua'), true);
+	assert.strictEqual(matchesCamelCase('User.active_users', 'Uau'), true);
+	assert.strictEqual(matchesCamelCase('Admin::User#reset_password', 'AUrp'), true);
+});
+
+test('CamelCase matching: snake_case boundaries', () => {
+	assert.strictEqual(matchesCamelCase('User#reset_password', 'rp'), true);
+	assert.strictEqual(matchesCamelCase('User.find_by_email', 'fbe'), true);
+	assert.strictEqual(matchesCamelCase('User.find_by_email', 'Ufbe'), true);
+});
+
+test('CamelCase matching: integrated via matchesRubySymbol', () => {
+	// Should match via camelCase when substring fails
+	assert.strictEqual(matchesRubySymbol('User::Admin', 'UA'), true);
+	assert.strictEqual(matchesRubySymbol('ActiveRecord::Base', 'ARB'), true);
+	// Substring still works
+	assert.strictEqual(matchesRubySymbol('User::Admin', 'Admin'), true);
+	// No match
+	assert.strictEqual(matchesRubySymbol('User::Admin', 'XY'), false);
+});
+
+test('CamelCase sorting: camelCase matches rank below substring matches', () => {
+	// "UA" matches "User::Admin" via camelCase, "UAdmin" matches via substring
+	const symbols = ['User::Admin', 'UAdmin'];
+
+	// "UA" - UAdmin has substring match (contains "ua" lowercase), User::Admin only camelCase
+	symbols.sort((a, b) => compareMatches(a, b, 'UA'));
+	// UAdmin should come first (substring match is ua at index 0)
+	assert.strictEqual(symbols[0], 'UAdmin');
+	assert.strictEqual(symbols[1], 'User::Admin');
+});
+
+test('CamelCase sorting: among camelCase matches, shorter names win', () => {
+	const symbols = ['ActiveRecord::Callbacks', 'ActiveRecord::Connection', 'Admin::RC'];
+
+	// "ARC" - all match via camelCase
+	const matches = symbols.filter(s => matchesCamelCase(s, 'ARC'));
+	assert.ok(matches.includes('ActiveRecord::Callbacks'));
+	assert.ok(matches.includes('ActiveRecord::Connection'));
+	assert.ok(matches.includes('Admin::RC'));
+
+	matches.sort((a, b) => compareMatches(a, b, 'ARC'));
+	// Shortest camelCase match first
+	assert.strictEqual(matches[0], 'Admin::RC');
 });

@@ -281,12 +281,24 @@ export function matchesRubySymbol(name: string, term: string): boolean {
   if (absoluteLookup) {
     return name.toLowerCase().startsWith(target);
   }
-  return name.toLowerCase().includes(target);
+
+  // Substring match first
+  if (name.toLowerCase().includes(target)) {
+    return true;
+  }
+
+  // Fall back to camelCase matching only for simple queries (no separators)
+  const rawQuery = term.trim();
+  if (!rawQuery.includes('::') && !rawQuery.includes('.') && !rawQuery.includes('#')) {
+    return matchesCamelCase(name, rawQuery);
+  }
+
+  return false;
 }
 
 /**
  * Compare two symbols for sorting by match quality.
- * Sorts by: exact match > prefix match > substring match
+ * Sorts by: exact match > prefix match > substring match > camelCase match
  * Within each category, earlier/shorter matches are prioritized.
  */
 export function compareMatches(nameA: string, nameB: string, searchTerm: string): number {
@@ -330,8 +342,96 @@ export function compareMatches(nameA: string, nameB: string, searchTerm: string)
     return nameA.length - nameB.length;
   }
 
+  // CamelCase match ranking
+  const aCamel = matchesCamelCase(nameA, searchTerm.trim());
+  const bCamel = matchesCamelCase(nameB, searchTerm.trim());
+  if (aCamel && !bCamel) { return -1; }
+  if (bCamel && !aCamel) { return 1; }
+
+  // Both are camelCase matches - shorter names are better
+  if (aCamel && bCamel) {
+    return nameA.length - nameB.length;
+  }
+
   // No match (shouldn't happen)
   return 0;
+}
+
+/**
+ * Match a query against the CamelCase/PascalCase structure of a symbol name.
+ * Each query character can match at a word boundary or consecutively after
+ * the previous match. Uppercase query chars prefer word boundaries.
+ * E.g., "UsAd" matches "User::Admin", "ARC" matches "ActiveRecord::Callbacks".
+ */
+export function matchesCamelCase(name: string, query: string): boolean {
+  if (query.length === 0) {
+    return true;
+  }
+
+  // Identify word boundary positions in the name
+  const boundaries = new Set<number>();
+  for (let i = 0; i < name.length; i++) {
+    const ch = name[i];
+    if (i === 0 && /[A-Za-z]/.test(ch)) {
+      boundaries.add(i);
+    } else if (i >= 2 && name[i - 1] === ':' && name[i - 2] === ':' && /[A-Za-z]/.test(ch)) {
+      boundaries.add(i);
+    } else if (i > 0 && name[i - 1] === '.' && /[A-Za-z]/.test(ch)) {
+      boundaries.add(i);
+    } else if (i > 0 && name[i - 1] === '#' && /[A-Za-z]/.test(ch)) {
+      boundaries.add(i);
+    } else if (i > 0 && name[i - 1] === '_' && /[A-Za-z]/.test(ch)) {
+      boundaries.add(i);
+    } else if (/[A-Z]/.test(ch) && i > 0) {
+      // Any uppercase letter is a potential word boundary
+      boundaries.add(i);
+    }
+  }
+
+  const boundaryList = Array.from(boundaries).sort((a, b) => a - b);
+  return doCamelCaseMatch(name, query, 0, 0, boundaryList);
+}
+
+function doCamelCaseMatch(name: string, query: string, qi: number, minNamePos: number, boundaries: number[]): boolean {
+  if (qi >= query.length) {
+    return true;
+  }
+
+  // Try matching at each boundary >= minNamePos
+  for (const bpos of boundaries) {
+    if (bpos < minNamePos) { continue; }
+    if (name[bpos].toLowerCase() === query[qi].toLowerCase()) {
+      // Match found at boundary, try to match rest of query consecutively from bpos+1
+      if (matchFromPosition(name, query, qi + 1, bpos + 1, boundaries)) {
+        return true;
+      }
+    }
+  }
+
+  return false;
+}
+
+function matchFromPosition(name: string, query: string, qi: number, ni: number, boundaries: number[]): boolean {
+  if (qi >= query.length) {
+    return true;
+  }
+
+  const qch = query[qi];
+
+  // If uppercase query char or consecutive match not possible, jump to next boundary
+  if (/[A-Z]/.test(qch)) {
+    return doCamelCaseMatch(name, query, qi, ni, boundaries);
+  }
+
+  // Try consecutive match first
+  if (ni < name.length && name[ni].toLowerCase() === qch.toLowerCase()) {
+    if (matchFromPosition(name, query, qi + 1, ni + 1, boundaries)) {
+      return true;
+    }
+  }
+
+  // If consecutive fails, try jumping to next boundary
+  return doCamelCaseMatch(name, query, qi, ni, boundaries);
 }
 
 export function isClassOrModule(symbolName: string): boolean {
