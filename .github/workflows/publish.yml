@@ -32,8 +32,14 @@ jobs:
       - name: Install vsce globally
         run: npm install -g @vscode/vsce
 
+      - name: Install ovsx globally
+        run: npm install -g ovsx
+
       - name: Publish to Marketplace
         run: vsce publish -p ${{ secrets.VSCE_TOKEN }} --packagePath *.vsix
+
+      - name: Publish to Open VSX
+        run: ovsx publish *.vsix -p ${{ secrets.OVSX_TOKEN }}
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v1
