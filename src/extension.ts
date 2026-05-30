@@ -368,6 +368,15 @@ async function showRubySymbolPicker() {
       items.push({ label: 'Indexing symbols... results will improve as more files load', kind: QuickPickItemKind.Separator });
     }
 
+    const fillButton = {
+      iconPath: new ThemeIcon('search'),
+      tooltip: 'Use as search filter'
+    };
+    const removeButton = {
+      iconPath: new ThemeIcon('close'),
+      tooltip: 'Remove from recently opened'
+    };
+
     // Add currently open (with separator)
     if (current.length > 0) {
       items.push({ label: 'Currently open', kind: QuickPickItemKind.Separator });
@@ -377,6 +386,7 @@ async function showRubySymbolPicker() {
         items.push({
           label: symbol.name,
           description: workspace.asRelativePath(symbol.uri),
+          buttons: [fillButton],
           symbol
         } as RubyPickItem);
         currentCount++;
@@ -393,12 +403,7 @@ async function showRubySymbolPicker() {
         items.push({
           label: symbol.name,
           description: workspace.asRelativePath(symbol.uri),
-          buttons: [
-            {
-              iconPath: new ThemeIcon('close'),
-              tooltip: 'Remove from recently opened'
-            }
-          ],
+          buttons: [fillButton, removeButton],
           symbol
         } as RubyPickItem);
         prevCount++;
@@ -414,6 +419,7 @@ async function showRubySymbolPicker() {
         items.push({
           label: symbol.name,
           description: workspace.asRelativePath(symbol.uri),
+          buttons: [fillButton],
           symbol
         } as RubyPickItem);
         count++;
@@ -457,7 +463,10 @@ async function showRubySymbolPicker() {
 
       if (!item.symbol) { return; }
 
-      if (button.tooltip === 'Remove from recently opened') {
+      if (button.tooltip === 'Use as search filter') {
+        // Fill search bar with this symbol's name
+        picker.value = item.symbol.name;
+      } else if (button.tooltip === 'Remove from recently opened') {
         // Remove button clicked - remove from history
         const history = extensionContext.globalState.get<string[]>('openedFiles', []);
         const updated = history.filter(f => f !== item.symbol!.uri.fsPath);
